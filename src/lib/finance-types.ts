@@ -72,6 +72,8 @@ export interface ParsedTransactionCandidate {
   type: TransactionType;
   merchant: string | null;
   category: CategorySlug | null;
+  occurredAtIso: string | null;
+  detectedDateLabel: string | null;
   confidence: number;
   needsReview: boolean;
   explanation: string;
@@ -82,4 +84,38 @@ export interface MerchantRule {
   merchant: string;
   category: CategorySlug;
   type?: TransactionType;
+}
+
+export interface BudgetCategory {
+  slug: CategorySlug;
+  label: string;
+  spent: number;
+  limit: number;
+  note: string;
+}
+
+export interface AutomationMethod {
+  id: string;
+  title: string;
+  description: string;
+  bullets: string[];
+  footnote: string;
+}
+
+export interface ShortcutTransactionPayload {
+  text?: string;
+  merchant?: string;
+  amount?: number;
+  currency?: string;
+  occurredAt?: string;
+  note?: string;
+  source?: "apple_pay" | "shortcut" | "voice_button" | "message";
+  device?: string;
+  webhookSecret?: string;
+}
+
+export interface FinanceAnswer {
+  title: string;
+  summary: string;
+  bullets: string[];
 }

@@ -8,6 +8,7 @@ const publicEnvSchema = z.object({
 const serverEnvSchema = publicEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
+  SHORTCUTS_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 export function getPublicEnv() {
@@ -23,5 +24,6 @@ export function getServerEnv() {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    SHORTCUTS_WEBHOOK_SECRET: process.env.SHORTCUTS_WEBHOOK_SECRET,
   });
 }
