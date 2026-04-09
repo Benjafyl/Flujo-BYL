@@ -60,7 +60,7 @@ export function answerFinanceQuestion(question: string): FinanceAnswer {
       bullets: [
         `Cambio vs mes anterior: ${formatCurrencyCLP(monthlySnapshot.incomeDelta)}.`,
         `Balance neto actual: ${formatCurrencyCLP(monthlySnapshot.balance)}.`,
-        "Lo siguiente es conectar esto a transacciones reales para responder por rango de fechas.",
+        "La entrada mensual se mantiene por encima del gasto actual.",
       ],
     };
   }

@@ -162,39 +162,39 @@ export const accountSnapshots: AccountSnapshot[] = [
 export const automationMethods: AutomationMethod[] = [
   {
     id: "apple-pay",
-    title: "Apple Pay -> Shortcut -> FLUJO",
+    title: "Atajo post-pago",
     description:
-      "La app recibe una nota automatica inmediatamente despues del pago y la convierte en una transaccion preliminar.",
+      "Cada pago puede entrar como movimiento ya clasificado desde iPhone.",
     bullets: [
       "Disparo instantaneo post-pago.",
       "Sin abrir la app si no hace falta.",
-      "Ideal para el flujo que mas te interesa.",
+      "Pensado para uso diario.",
     ],
-    footnote: "Requiere un Atajo de iPhone que llame al webhook de FLUJO BYL.",
+    footnote: "Usa un Atajo de iPhone conectado al webhook de FLUJO BYL.",
   },
   {
     id: "voice-button",
     title: "Boton de voz",
     description:
-      "Dictas el gasto al momento y el parser detecta monto, merchant, categoria y confianza.",
+      "Dictas el gasto y se detectan monto, comercio, categoria y fecha.",
     bullets: [
       "Registro manos libres.",
       "Detecta fechas como hoy o ayer.",
-      "Muestra cuanto presupuesto quedaria.",
+      "Muestra el impacto en presupuesto.",
     ],
-    footnote: "Hoy se puede probar en web/PWA con reconocimiento de voz del navegador.",
+    footnote: "Disponible en web y PWA con reconocimiento de voz del navegador.",
   },
   {
     id: "message-trigger",
     title: "Mensaje o confirmacion",
     description:
-      "Una confirmacion de compra o un mensaje tuyo puede entrar al webhook y pasar por el mismo parser.",
+      "Una confirmacion de compra o un mensaje puede pasar por el mismo intake.",
     bullets: [
       "Sirve para SMS del banco o mensajes guardados.",
       "Comparte el mismo motor de normalizacion.",
-      "Te deja una sola capa backend para automatizaciones.",
+      "Mantiene una sola capa de entrada.",
     ],
-    footnote: "Es el siguiente candidato despues de Apple Pay.",
+    footnote: "Ideal para ampliar la automatizacion sin cambiar la interfaz.",
   },
 ];
 

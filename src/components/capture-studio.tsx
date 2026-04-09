@@ -173,14 +173,13 @@ export function CaptureStudio() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.22em] text-[color:var(--muted)]">
-            Captura rapida
+            Captura
           </p>
           <h2 className="section-title mt-2 text-3xl font-semibold">
-            Habla o escribe una sola vez
+            Nuevo movimiento
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[color:var(--muted)]">
-            FLUJO detecta monto, merchant, categoria y te dice cuanto presupuesto
-            quedaria antes de guardar el movimiento.
+          <p className="mt-2 text-sm text-[color:var(--muted)]">
+            Texto o voz. Lectura inmediata con categoria y monto.
           </p>
         </div>
 
@@ -244,7 +243,7 @@ export function CaptureStudio() {
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              Interpretar movimiento
+              Interpretar
             </button>
 
             <button
@@ -302,7 +301,18 @@ export function CaptureStudio() {
           {parsed ? (
             <div className="mt-4 space-y-4">
               <div className="rounded-[22px] bg-[color:var(--surface-strong)] p-4">
-                <p className="text-sm text-[color:var(--muted)]">Movimiento detectado</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-[color:var(--muted)]">Lectura</p>
+                  <span
+                    className={`rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                      parsed.needsReview
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {parsed.needsReview ? "revisar" : "listo"}
+                  </span>
+                </div>
                 <p className="mt-2 text-2xl font-semibold">
                   {parsed.amount ? formatCurrencyCLP(parsed.amount) : "Monto pendiente"}
                 </p>

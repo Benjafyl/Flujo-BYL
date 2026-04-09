@@ -356,10 +356,10 @@ function buildExplanation({
         ? `El comercio coincide con una regla conocida: ${merchant}.`
         : `El merchant sugerido es ${merchant}.`
       : "No hubo un comercio inequivoco en el texto.",
-    category ? `La categoria propuesta es ${category}.` : "No hubo categoria concluyente.",
+    category ? `La categoria detectada es ${category}.` : "No hubo categoria concluyente.",
     needsReview
-      ? "La confianza todavia es media, asi que conviene mostrar confirmacion."
-      : "La confianza es alta y el movimiento podria auto-registrarse.",
+      ? "La confianza es media, asi que conviene confirmar antes de guardar."
+      : "La confianza es alta y el movimiento queda listo para guardarse.",
   ];
 
   return fragments.join(" ");

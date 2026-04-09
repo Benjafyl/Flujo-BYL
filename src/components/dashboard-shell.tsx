@@ -1,19 +1,32 @@
+"use client";
+
+import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  startTransition,
+} from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
   AudioLines,
+  BrainCircuit,
   ChartColumnIncreasing,
   Clock3,
   Landmark,
+  LayoutDashboard,
+  Link2,
+  ListFilter,
   PiggyBank,
   Sparkles,
   WalletCards,
 } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { AutomationPlaybook } from "@/components/automation-playbook";
 import { BudgetBoard } from "@/components/budget-board";
 import { CaptureStudio } from "@/components/capture-studio";
 import { FinanceCopilot } from "@/components/finance-copilot";
+import { TransactionsDesk } from "@/components/transactions-desk";
 import {
   accountSnapshots,
   categoryInsights,
@@ -25,374 +38,740 @@ import {
 } from "@/lib/dashboard-data";
 import { categoryMeta } from "@/lib/merchant-rules";
 
+type WorkspaceView =
+  | "overview"
+  | "capture"
+  | "transactions"
+  | "budget"
+  | "assistant"
+  | "automation";
+
+const workspaceViews: Array<{
+  id: WorkspaceView;
+  label: string;
+  shortLabel: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+}> = [
+  {
+    id: "overview",
+    label: "Resumen",
+    shortLabel: "Resumen",
+    title: "Vista general",
+    description: "Balance, categorias y actividad del mes.",
+    icon: LayoutDashboard,
+  },
+  {
+    id: "capture",
+    label: "Captura",
+    shortLabel: "Captura",
+    title: "Nuevo movimiento",
+    description: "Texto o voz con clasificacion inmediata.",
+    icon: AudioLines,
+  },
+  {
+    id: "transactions",
+    label: "Movimientos",
+    shortLabel: "Movs",
+    title: "Movimientos",
+    description: "Filtra y revisa lo ultimo que entro o salio.",
+    icon: ListFilter,
+  },
+  {
+    id: "budget",
+    label: "Presupuestos",
+    shortLabel: "Limites",
+    title: "Presupuestos",
+    description: "Restante por categoria y puntos de tension.",
+    icon: PiggyBank,
+  },
+  {
+    id: "assistant",
+    label: "Analista",
+    shortLabel: "Analista",
+    title: "Analista",
+    description: "Preguntas rapidas sobre tus numeros.",
+    icon: BrainCircuit,
+  },
+  {
+    id: "automation",
+    label: "Automatizar",
+    shortLabel: "Atajos",
+    title: "Automatizaciones",
+    description: "Atajos, webhook y entradas automáticas.",
+    icon: Link2,
+  },
+];
+
 export function DashboardShell() {
-  const summaryCards = [
-    {
-      label: "Ingresos del mes",
-      value: monthlySnapshot.income,
-      delta: monthlySnapshot.incomeDelta,
-      icon: ArrowUpRight,
-      tone: "bg-emerald-100 text-emerald-700",
-    },
-    {
-      label: "Egresos del mes",
-      value: monthlySnapshot.expenses,
-      delta: monthlySnapshot.expenseDelta,
-      icon: ArrowDownLeft,
-      tone: "bg-orange-100 text-orange-700",
-    },
-    {
-      label: "Balance neto",
-      value: monthlySnapshot.balance,
-      delta: monthlySnapshot.balanceDelta,
-      icon: PiggyBank,
-      tone: "bg-teal-100 text-teal-800",
-    },
-  ];
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedView = searchParams.get("view");
+  const activeView = isWorkspaceView(requestedView) ? requestedView : "overview";
+  const activeMeta =
+    workspaceViews.find((view) => view.id === activeView) ?? workspaceViews[0];
+
+  function openView(nextView: WorkspaceView) {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (nextView === "overview") {
+        params.delete("view");
+      } else {
+        params.set("view", nextView);
+      }
+
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    });
+  }
 
   return (
-    <main className="px-4 py-5 sm:px-6 lg:px-10 lg:py-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
-        <section className="glass-panel noise-overlay relative overflow-hidden rounded-[36px] p-5 sm:p-7">
-          <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-r from-teal-700/18 via-transparent to-orange-500/15" />
-          <div className="absolute -right-12 top-8 h-40 w-40 rounded-full bg-teal-600/12 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-orange-500/12 blur-3xl" />
+    <>
+      <a href="#workspace-main" className="skip-link">
+        Saltar al contenido
+      </a>
 
-          <div className="relative grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="space-y-6">
-              <div className="max-w-3xl space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--line)] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">
-                  <Sparkles className="h-3.5 w-3.5 text-[color:var(--accent)]" />
-                  Flujo simple, lectura rapida
+      <main className="px-3 py-3 sm:px-5 lg:px-6 lg:py-5">
+        <div className="mx-auto max-w-[1500px] lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-5">
+          <aside className="sidebar-shell hidden lg:flex lg:min-h-[calc(100vh-2.5rem)] lg:flex-col lg:justify-between lg:rounded-[30px] lg:p-5">
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">
+                  <Sparkles className="h-3.5 w-3.5 text-sky-300" />
+                  FLUJO BYL
                 </div>
-                <div className="space-y-3">
-                  <h1 className="section-title text-4xl font-semibold tracking-tight text-[color:var(--ink)] sm:text-5xl">
-                    Registra el gasto antes de olvidarlo y entiende el mes sin ruido.
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight text-white">
+                    Dinero claro en un solo workspace.
                   </h1>
-                  <p className="max-w-2xl text-sm leading-6 text-[color:var(--muted)] sm:text-base">
-                    FLUJO BYL ya esta orientado al uso que de verdad importa: captura por
-                    voz o texto, presupuestos por categoria, automatizacion tipo Shortcut
-                    y respuestas cortas sobre tus numeros.
+                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                    Abril 2026 · Todo sincronizado desde una sola vista.
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3">
-                {summaryCards.map((card) => {
-                  const Icon = card.icon;
-
-                  return (
-                    <article
-                      key={card.label}
-                      className="rounded-[26px] border border-[color:var(--line)] bg-white/80 p-4 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-[color:var(--muted)]">{card.label}</p>
-                        <span className={`rounded-full p-2 ${card.tone}`}>
-                          <Icon className="h-4 w-4" />
-                        </span>
-                      </div>
-                      <p className="mt-4 text-3xl font-semibold tracking-tight">
-                        {formatCurrencyCLP(card.value)}
-                      </p>
-                      <p className="mt-2 text-xs font-medium text-[color:var(--muted)]">
-                        {formatSignedCurrencyCLP(card.delta)} vs mes anterior
-                      </p>
-                    </article>
-                  );
-                })}
-              </div>
+              <nav className="space-y-2" aria-label="Secciones">
+                {workspaceViews.map((view) => (
+                  <SidebarLink
+                    key={view.id}
+                    active={view.id === activeView}
+                    icon={view.icon}
+                    label={view.label}
+                    description={view.description}
+                    onClick={() => openView(view.id)}
+                  />
+                ))}
+              </nav>
             </div>
 
-            <aside className="grid gap-4">
-              <article className="rounded-[32px] border border-[color:var(--line)] bg-[color:var(--accent-strong)] p-5 text-white shadow-lg">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.22em] text-teal-100/90">
-                      Core diario
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold">
-                      Hablar, clasificar y decidir rapido.
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-white/15 bg-white/10 p-3">
-                    <AudioLines className="h-5 w-5" />
-                  </span>
+            <div className="space-y-3">
+              <SidebarMetric
+                label="Balance"
+                value={formatCurrencyCLP(monthlySnapshot.balance)}
+              />
+              <SidebarMetric
+                label="Usado"
+                value={`${Math.round(monthlySnapshot.budgetUsed * 100)}%`}
+              />
+              <SidebarMetric
+                label="Revisar"
+                value={`${monthlySnapshot.reviewQueue}`}
+              />
+            </div>
+          </aside>
+
+          <div className="space-y-4">
+            <section className="glass-panel rounded-[28px] p-4 lg:hidden">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                    FLUJO BYL
+                  </p>
+                  <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--ink)]">
+                    Workspace personal
+                  </h1>
+                </div>
+                <div className="rounded-[20px] bg-[color:var(--surface-muted)] px-3 py-2 text-right">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--muted)]">
+                    Balance
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--ink)]">
+                    {formatCurrencyCLP(monthlySnapshot.balance)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="scroll-row mt-4 flex gap-2 overflow-x-auto pb-1">
+                {workspaceViews.map((view) => (
+                  <MobileNavButton
+                    key={view.id}
+                    active={view.id === activeView}
+                    label={view.shortLabel}
+                    icon={view.icon}
+                    onClick={() => openView(view.id)}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="glass-panel rounded-[30px] p-4 sm:p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                    {activeMeta.label}
+                  </p>
+                  <h2 className="section-title mt-2 text-3xl font-semibold text-[color:var(--ink)]">
+                    {activeMeta.title}
+                  </h2>
+                  <p className="mt-2 text-sm text-[color:var(--muted)]">
+                    {activeMeta.description}
+                  </p>
                 </div>
 
-                <div className="mt-5 grid gap-3">
-                  <HighlightLine
-                    label="Presupuesto usado"
-                    value={`${Math.round(monthlySnapshot.budgetUsed * 100)}%`}
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <MiniStatCard
+                    icon={ArrowUpRight}
+                    label="Ingresos"
+                    value={formatCurrencyCLP(monthlySnapshot.income)}
+                    tone="text-emerald-600 bg-emerald-50"
                   />
-                  <HighlightLine
-                    label="Promedio diario"
-                    value={formatCurrencyCLP(monthlySnapshot.dailyExpenseAverage)}
+                  <MiniStatCard
+                    icon={ArrowDownLeft}
+                    label="Egresos"
+                    value={formatCurrencyCLP(monthlySnapshot.expenses)}
+                    tone="text-orange-600 bg-orange-50"
                   />
-                  <HighlightLine
+                  <MiniStatCard
+                    icon={Clock3}
                     label="Pendientes"
-                    value={`${monthlySnapshot.reviewQueue} por revisar`}
+                    value={`${monthlySnapshot.reviewQueue}`}
+                    tone="text-sky-700 bg-sky-50"
                   />
                 </div>
-              </article>
+              </div>
+            </section>
 
-              <article className="rounded-[32px] border border-[color:var(--line)] bg-white/80 p-5">
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-[color:var(--accent-soft)] p-2 text-[color:var(--accent-strong)]">
-                    <WalletCards className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold">Prioridades del producto</p>
-                    <p className="text-xs text-[color:var(--muted)]">
-                      Ordenadas segun tu uso real.
-                    </p>
-                  </div>
-                </div>
+            <div id="workspace-main" className="space-y-4">
+              <Activity mode={activeView === "overview" ? "visible" : "hidden"}>
+                <OverviewPanel openView={openView} />
+              </Activity>
 
-                <div className="mt-5 space-y-3">
-                  <PriorityLine title="1. Captura sin friccion" subtitle="Voz, texto y parser natural." />
-                  <PriorityLine title="2. Limites visibles" subtitle="Ver restante antes de gastar." />
-                  <PriorityLine title="3. Atajos y webhook" subtitle="Shortcut post-pago como siguiente capa." />
-                  <PriorityLine title="4. QA financiero" subtitle="Preguntas cortas sobre tu propio flujo." />
-                </div>
-              </article>
-            </aside>
+              <Activity mode={activeView === "capture" ? "visible" : "hidden"}>
+                <CaptureStudio />
+              </Activity>
+
+              <Activity mode={activeView === "transactions" ? "visible" : "hidden"}>
+                <TransactionsDesk />
+              </Activity>
+
+              <Activity mode={activeView === "budget" ? "visible" : "hidden"}>
+                <BudgetBoard />
+              </Activity>
+
+              <Activity mode={activeView === "assistant" ? "visible" : "hidden"}>
+                <FinanceCopilot />
+              </Activity>
+
+              <Activity mode={activeView === "automation" ? "visible" : "hidden"}>
+                <AutomationPlaybook />
+              </Activity>
+            </div>
           </div>
-        </section>
-
-        <CaptureStudio />
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <BudgetBoard />
-          <FinanceCopilot />
         </div>
-
-        <AutomationPlaybook />
-
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <article className="glass-panel rounded-[32px] p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-[color:var(--muted)]">
-                  Radiografia mensual
-                </p>
-                <h2 className="section-title mt-2 text-2xl font-semibold">
-                  Donde se mueve el mes
-                </h2>
-              </div>
-              <span className="rounded-full bg-[color:var(--accent-soft)] p-2 text-[color:var(--accent-strong)]">
-                <ChartColumnIncreasing className="h-5 w-5" />
-              </span>
-            </div>
-
-            <div className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-              <div className="grid gap-3 sm:grid-cols-4 xl:grid-cols-2">
-                {weeklyFlow.map((week) => {
-                  const highestBar = Math.max(week.income, week.expense);
-
-                  return (
-                    <div
-                      key={week.label}
-                      className="rounded-[24px] border border-[color:var(--line)] bg-white/75 p-3"
-                    >
-                      <div className="grid h-36 grid-cols-2 items-end gap-2">
-                        <div className="flex h-full items-end">
-                          <div
-                            className="w-full rounded-t-2xl bg-emerald-500/85"
-                            style={{
-                              height: `${Math.max((week.income / highestBar) * 100, 12)}%`,
-                            }}
-                          />
-                        </div>
-                        <div className="flex h-full items-end">
-                          <div
-                            className="w-full rounded-t-2xl bg-orange-400/90"
-                            style={{
-                              height: `${Math.max((week.expense / highestBar) * 100, 12)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-4 space-y-1">
-                        <p className="font-medium">{week.label}</p>
-                        <p className="text-xs text-[color:var(--muted)]">
-                          + {formatCurrencyCLP(week.income)}
-                        </p>
-                        <p className="text-xs text-[color:var(--muted)]">
-                          - {formatCurrencyCLP(week.expense)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-4">
-                {categoryInsights.map((category) => (
-                  <div
-                    key={category.slug}
-                    className="rounded-[24px] border border-[color:var(--line)] bg-white/75 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-semibold">{category.label}</p>
-                        <p className="mt-1 text-sm leading-6 text-[color:var(--muted)]">
-                          {category.description}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{formatCurrencyCLP(category.amount)}</p>
-                        <p className="mt-1 text-xs text-[color:var(--muted)]">
-                          {formatSignedCurrencyCLP(category.change)} vs mes anterior
-                        </p>
-                      </div>
-                    </div>
-                    <div className="metric-track mt-4 h-2 overflow-hidden rounded-full">
-                      <div
-                        className="metric-fill h-full rounded-full"
-                        style={{ width: `${Math.round(category.share * 100)}%` }}
-                      />
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-[color:var(--muted)]">
-                      <span>{Math.round(category.share * 100)}% del gasto total</span>
-                      <span>{Math.round(category.budgetFill * 100)}% del limite</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </article>
-
-          <div className="grid gap-6">
-            <article className="glass-panel rounded-[32px] p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-[color:var(--muted)]">
-                    Actividad reciente
-                  </p>
-                  <h2 className="section-title mt-2 text-2xl font-semibold">
-                    Lo ultimo que deberias mirar
-                  </h2>
-                </div>
-                <span className="rounded-full bg-[color:var(--alert-soft)] p-2 text-[color:var(--alert)]">
-                  <Clock3 className="h-5 w-5" />
-                </span>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {recentTransactions.map((transaction) => {
-                  const meta = categoryMeta[transaction.category];
-
-                  return (
-                    <div
-                      key={transaction.id}
-                      className="rounded-[24px] border border-[color:var(--line)] bg-white/75 px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className="rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
-                              style={{
-                                background: meta.soft,
-                                color: meta.ink,
-                              }}
-                            >
-                              {meta.label}
-                            </span>
-                            {transaction.needsReview ? (
-                              <span className="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-700">
-                                revisar
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="mt-3 font-semibold">{transaction.title}</p>
-                          <p className="mt-1 text-sm text-[color:var(--muted)]">
-                            {transaction.description}
-                          </p>
-                        </div>
-
-                        <div className="text-right">
-                          <p
-                            className={`font-semibold ${
-                              transaction.type === "income"
-                                ? "text-emerald-700"
-                                : "text-[color:var(--ink)]"
-                            }`}
-                          >
-                            {transaction.type === "income" ? "+" : "-"}
-                            {formatCurrencyCLP(transaction.amount)}
-                          </p>
-                          <p className="mt-1 text-xs text-[color:var(--muted)]">
-                            {transaction.account} · {transaction.occurredAt}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </article>
-
-            <article className="glass-panel rounded-[32px] p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-[color:var(--muted)]">
-                    Cuentas
-                  </p>
-                  <h2 className="section-title mt-2 text-2xl font-semibold">
-                    Donde esta la plata hoy
-                  </h2>
-                </div>
-                <span className="rounded-full bg-slate-100 p-2 text-slate-700">
-                  <Landmark className="h-5 w-5" />
-                </span>
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {accountSnapshots.map((account) => (
-                  <div
-                    key={account.name}
-                    className="rounded-[24px] border border-[color:var(--line)] bg-white/75 p-4"
-                  >
-                    <p className="text-sm text-[color:var(--muted)]">{account.name}</p>
-                    <p className="mt-3 text-2xl font-semibold">
-                      {formatCurrencyCLP(account.balance)}
-                    </p>
-                    <p className="mt-1 text-xs text-[color:var(--muted)]">
-                      {account.note}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </div>
-        </section>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
 
-function HighlightLine({ label, value }: { label: string; value: string }) {
+function OverviewPanel({
+  openView,
+}: {
+  openView: (view: WorkspaceView) => void;
+}) {
+  const strongestCategory = categoryInsights[0];
+
   return (
-    <div className="flex items-center justify-between gap-4 rounded-[22px] border border-white/10 bg-white/10 px-4 py-3">
-      <span className="text-sm text-teal-100/90">{label}</span>
-      <span className="text-sm font-semibold text-white">{value}</span>
+    <section className="grid gap-4">
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="glass-panel overflow-hidden rounded-[30px] p-5 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                Abril 2026
+              </p>
+              <h3 className="section-title mt-2 text-4xl font-semibold tracking-tight text-[color:var(--ink)]">
+                {formatCurrencyCLP(monthlySnapshot.balance)}
+              </h3>
+              <p className="mt-2 text-sm text-[color:var(--muted)]">
+                Neto del mes · {formatSignedCurrencyCLP(monthlySnapshot.balanceDelta)} vs
+                el periodo anterior.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <QuickActionButton
+                icon={AudioLines}
+                label="Registrar"
+                onClick={() => openView("capture")}
+              />
+              <QuickActionButton
+                icon={PiggyBank}
+                label="Ver limites"
+                onClick={() => openView("budget")}
+              />
+              <QuickActionButton
+                icon={BrainCircuit}
+                label="Preguntar"
+                onClick={() => openView("assistant")}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            <SummaryCard
+              label="Ingresos"
+              value={monthlySnapshot.income}
+              delta={monthlySnapshot.incomeDelta}
+              icon={ArrowUpRight}
+              tone="bg-emerald-100 text-emerald-700"
+            />
+            <SummaryCard
+              label="Egresos"
+              value={monthlySnapshot.expenses}
+              delta={monthlySnapshot.expenseDelta}
+              icon={ArrowDownLeft}
+              tone="bg-orange-100 text-orange-700"
+            />
+            <SummaryCard
+              label="Categoria mas alta"
+              value={strongestCategory.amount}
+              delta={strongestCategory.change}
+              icon={WalletCards}
+              tone="bg-sky-100 text-sky-700"
+              footer={strongestCategory.label}
+            />
+          </div>
+        </article>
+
+        <article className="glass-panel rounded-[30px] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                Radar rapido
+              </p>
+              <h3 className="mt-2 text-xl font-semibold text-[color:var(--ink)]">
+                Lo importante hoy
+              </h3>
+            </div>
+            <span className="rounded-full bg-[color:var(--accent-soft)] p-2 text-[color:var(--accent-strong)]">
+              <Sparkles className="h-4 w-4" />
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <SignalCard
+              title="Promedio diario"
+              value={formatCurrencyCLP(monthlySnapshot.dailyExpenseAverage)}
+            />
+            <SignalCard
+              title="Categoria tensionada"
+              value={strongestCategory.label}
+            />
+            <SignalCard
+              title="Por revisar"
+              value={`${monthlySnapshot.reviewQueue} movimientos`}
+            />
+          </div>
+        </article>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <article className="glass-panel rounded-[30px] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                Flujo semanal
+              </p>
+              <h3 className="mt-2 text-xl font-semibold text-[color:var(--ink)]">
+                Entradas y salidas
+              </h3>
+            </div>
+            <span className="rounded-full bg-[color:var(--surface-muted)] p-2 text-[color:var(--accent-strong)]">
+              <ChartColumnIncreasing className="h-4 w-4" />
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            {weeklyFlow.map((week) => {
+              const highestBar = Math.max(week.income, week.expense);
+
+              return (
+                <div
+                  key={week.label}
+                  className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] p-3"
+                >
+                  <div className="grid h-32 grid-cols-2 items-end gap-2">
+                    <div className="flex h-full items-end">
+                      <div
+                        className="w-full rounded-t-2xl bg-emerald-500/85"
+                        style={{
+                          height: `${Math.max((week.income / highestBar) * 100, 12)}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex h-full items-end">
+                      <div
+                        className="w-full rounded-t-2xl bg-orange-400/90"
+                        style={{
+                          height: `${Math.max((week.expense / highestBar) * 100, 12)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    <p className="text-sm font-semibold text-[color:var(--ink)]">
+                      {week.label}
+                    </p>
+                    <p className="text-xs text-[color:var(--muted)]">
+                      + {formatCurrencyCLP(week.income)}
+                    </p>
+                    <p className="text-xs text-[color:var(--muted)]">
+                      - {formatCurrencyCLP(week.expense)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            {categoryInsights.map((category) => (
+              <div
+                key={category.slug}
+                className="rounded-[22px] border border-[color:var(--line)] bg-white/78 p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-[color:var(--ink)]">
+                      {category.label}
+                    </p>
+                    <p className="mt-1 text-xs text-[color:var(--muted)]">
+                      {Math.round(category.share * 100)}% del gasto total
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-[color:var(--ink)]">
+                      {formatCurrencyCLP(category.amount)}
+                    </p>
+                    <p className="mt-1 text-xs text-[color:var(--muted)]">
+                      {formatSignedCurrencyCLP(category.change)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="metric-track mt-3 h-2 overflow-hidden rounded-full">
+                  <div
+                    className="metric-fill h-full rounded-full"
+                    style={{ width: `${Math.round(category.share * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <div className="grid gap-4">
+          <article className="glass-panel rounded-[30px] p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                  Reciente
+                </p>
+                <h3 className="mt-2 text-xl font-semibold text-[color:var(--ink)]">
+                  Ultimos movimientos
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => openView("transactions")}
+                className="rounded-full border border-[color:var(--line)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--ink)] transition hover:border-[color:var(--line-strong)]"
+              >
+                Ver todos
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {recentTransactions.slice(0, 4).map((transaction) => {
+                const meta = categoryMeta[transaction.category];
+
+                return (
+                  <div
+                    key={transaction.id}
+                    className="rounded-[22px] border border-[color:var(--line)] bg-white/78 px-4 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className="rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
+                            style={{ background: meta.soft, color: meta.ink }}
+                          >
+                            {meta.label}
+                          </span>
+                          {transaction.needsReview ? (
+                            <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
+                              revisar
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-3 text-sm font-semibold text-[color:var(--ink)]">
+                          {transaction.title}
+                        </p>
+                        <p className="mt-1 text-xs text-[color:var(--muted)]">
+                          {transaction.account} - {transaction.occurredAt}
+                        </p>
+                      </div>
+
+                      <p
+                        className={`text-sm font-semibold ${
+                          transaction.type === "income"
+                            ? "text-emerald-700"
+                            : "text-[color:var(--ink)]"
+                        }`}
+                      >
+                        {transaction.type === "income" ? "+" : "-"}
+                        {formatCurrencyCLP(transaction.amount)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+
+          <article className="glass-panel rounded-[30px] p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                  Cuentas
+                </p>
+                <h3 className="mt-2 text-xl font-semibold text-[color:var(--ink)]">
+                  Posicion actual
+                </h3>
+              </div>
+              <span className="rounded-full bg-[color:var(--surface-muted)] p-2 text-[color:var(--accent-strong)]">
+                <Landmark className="h-4 w-4" />
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {accountSnapshots.map((account) => (
+                <div
+                  key={account.name}
+                  className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] px-4 py-3"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-[color:var(--ink)]">
+                        {account.name}
+                      </p>
+                      <p className="mt-1 text-xs text-[color:var(--muted)]">
+                        {account.note}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold text-[color:var(--ink)]">
+                      {formatCurrencyCLP(account.balance)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function isWorkspaceView(value: string | null): value is WorkspaceView {
+  return workspaceViews.some((view) => view.id === value);
+}
+
+function SidebarLink({
+  active,
+  icon: Icon,
+  label,
+  description,
+  onClick,
+}: {
+  active: boolean;
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={`flex w-full items-start gap-3 rounded-[20px] px-4 py-3 text-left transition ${
+        active
+          ? "bg-white text-slate-950 shadow-sm"
+          : "bg-white/5 text-slate-200 hover:bg-white/8"
+      }`}
+    >
+      <span
+        className={`mt-0.5 rounded-full p-2 ${
+          active ? "bg-slate-100 text-[color:var(--accent-strong)]" : "bg-white/10"
+        }`}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{label}</span>
+        <span
+          className={`mt-1 block text-xs leading-5 ${
+            active ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          {description}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function SidebarMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[20px] border border-white/10 bg-white/6 px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+        {label}
+      </p>
+      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
     </div>
   );
 }
 
-function PriorityLine({
-  title,
-  subtitle,
+function MobileNavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
 }: {
-  title: string;
-  subtitle: string;
+  active: boolean;
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
 }) {
   return (
-    <div className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] px-4 py-3">
-      <p className="text-sm font-semibold text-[color:var(--ink)]">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-[color:var(--muted)]">{subtitle}</p>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex min-h-[44px] items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+        active
+          ? "bg-[color:var(--accent-strong)] text-white"
+          : "border border-[color:var(--line)] bg-white text-[color:var(--muted)]"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  delta,
+  footer,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  delta: number;
+  footer?: string;
+  icon: LucideIcon;
+  tone: string;
+}) {
+  return (
+    <article className="rounded-[24px] border border-[color:var(--line)] bg-white/82 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-[color:var(--muted)]">{label}</p>
+        <span className={`rounded-full p-2 ${tone}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <p className="mt-4 text-2xl font-semibold tracking-tight text-[color:var(--ink)]">
+        {formatCurrencyCLP(value)}
+      </p>
+      <p className="mt-2 text-xs text-[color:var(--muted)]">
+        {footer ?? `${formatSignedCurrencyCLP(delta)} vs mes anterior`}
+      </p>
+    </article>
+  );
+}
+
+function MiniStatCard({
+  icon: Icon,
+  label,
+  tone,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  tone: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[20px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span className={`rounded-full p-2 ${tone}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--muted)]">
+          {label}
+        </p>
+      </div>
+      <p className="mt-3 text-sm font-semibold text-[color:var(--ink)]">{value}</p>
+    </div>
+  );
+}
+
+function QuickActionButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-semibold text-[color:var(--ink)] transition hover:border-[color:var(--line-strong)] hover:bg-[color:var(--surface-muted)]"
+    >
+      <Icon className="h-4 w-4 text-[color:var(--accent-strong)]" />
+      {label}
+    </button>
+  );
+}
+
+function SignalCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] px-4 py-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--muted)]">
+        {title}
+      </p>
+      <p className="mt-2 text-lg font-semibold text-[color:var(--ink)]">{value}</p>
     </div>
   );
 }

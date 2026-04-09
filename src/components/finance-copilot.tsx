@@ -53,14 +53,13 @@ export function FinanceCopilot() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.22em] text-[color:var(--muted)]">
-            Pregunta a tus finanzas
+            Analista
           </p>
           <h2 className="section-title mt-2 text-3xl font-semibold">
-            Respuestas cortas sobre tu propio mes
+            Consulta rapida
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[color:var(--muted)]">
-            Esta capa no intenta ser magia todavia. Parte leyendo patrones reales de
-            categorias, presupuesto y balance.
+          <p className="mt-2 text-sm text-[color:var(--muted)]">
+            Pregunta por categorias, limites o ingresos.
           </p>
         </div>
 
@@ -152,8 +151,7 @@ export function FinanceCopilot() {
           </div>
         ) : (
           <div className="text-sm leading-6 text-[color:var(--muted)]">
-            Aqui va a aparecer una lectura corta cuando preguntes por categorias,
-            presupuesto restante, ingresos o promedio diario.
+            Escribe una pregunta y veras una lectura directa del mes.
           </div>
         )}
       </div>

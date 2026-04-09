@@ -13,12 +13,10 @@ export function AutomationPlaybook() {
             Automatizacion
           </p>
           <h2 className="section-title mt-2 text-3xl font-semibold">
-            Registra despues del pago, no al final del dia
+            Entradas automaticas
           </h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[color:var(--muted)]">
-            La web no puede escuchar Apple Pay por si sola. El camino correcto es
-            Shortcut o mensaje {"->"} webhook de FLUJO {"->"} parser {"->"}{" "}
-            confirmacion minima.
+          <p className="mt-2 text-sm text-[color:var(--muted)]">
+            Shortcut, voz y mensajes comparten la misma entrada.
           </p>
         </div>
 
@@ -77,9 +75,7 @@ export function AutomationPlaybook() {
               </span>
               <div>
                 <p className="text-sm font-semibold">Webhook para iPhone Shortcuts</p>
-                <p className="text-xs text-[color:var(--muted)]">
-                  Primer intake backend para automatizaciones.
-                </p>
+                <p className="text-xs text-[color:var(--muted)]">Ruta lista para atajos.</p>
               </div>
             </div>
 
@@ -110,7 +106,7 @@ export function AutomationPlaybook() {
 
           <article className="rounded-[28px] border border-[color:var(--line)] bg-white/80 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">
-              Secuencia recomendada
+              Flujo
             </p>
             <div className="mt-4 space-y-3">
               <StepLine

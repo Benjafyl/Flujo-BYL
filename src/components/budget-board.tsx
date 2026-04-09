@@ -16,14 +16,13 @@ export function BudgetBoard() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.22em] text-[color:var(--muted)]">
-            Limites del mes
+            Presupuestos
           </p>
           <h2 className="section-title mt-2 text-3xl font-semibold">
-            Pon limites y miralos en tiempo real
+            Limites por categoria
           </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[color:var(--muted)]">
-            El dashboard debe decirte cuanto queda antes de pasarte, no solo cuanto
-            gastaste despues.
+          <p className="mt-2 text-sm text-[color:var(--muted)]">
+            Restante, avance y foco del mes.
           </p>
         </div>
 
@@ -99,7 +98,7 @@ export function BudgetBoard() {
               <div>
                 <p className="text-sm font-semibold">Categoria mas sensible</p>
                 <p className="text-xs text-[color:var(--muted)]">
-                  La que hoy merece mas friccion positiva.
+                  La que hoy merece mas control.
                 </p>
               </div>
             </div>
@@ -111,10 +110,7 @@ export function BudgetBoard() {
               <p className="mt-2 text-3xl font-semibold">
                 {formatCurrencyCLP(mostPressuredBudget.limit - mostPressuredBudget.spent)}
               </p>
-              <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
-                Si sigues registrando antes de pagar o justo despues, aqui deberias ver
-                el cambio inmediato.
-              </p>
+              <p className="mt-2 text-sm text-[color:var(--muted)]">Disponible hoy.</p>
             </div>
           </article>
 
@@ -125,9 +121,7 @@ export function BudgetBoard() {
               </span>
               <div>
                 <p className="text-sm font-semibold">Pulso general</p>
-                <p className="text-xs text-[color:var(--muted)]">
-                  Lectura corta para decidir rapido.
-                </p>
+                <p className="text-xs text-[color:var(--muted)]">Lectura del mes.</p>
               </div>
             </div>
 
