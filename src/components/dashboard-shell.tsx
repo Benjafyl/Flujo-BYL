@@ -20,7 +20,8 @@ import {
   Sparkles,
   WalletCards,
 } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 import { AutomationPlaybook } from "@/components/automation-playbook";
 import { BudgetBoard } from "@/components/budget-board";
@@ -104,18 +105,26 @@ const workspaceViews: Array<{
   },
 ];
 
-export function DashboardShell() {
+export function DashboardShell({
+  initialView,
+}: {
+  initialView: WorkspaceView;
+}) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const requestedView = searchParams.get("view");
-  const activeView = isWorkspaceView(requestedView) ? requestedView : "overview";
+  const [activeView, setActiveView] = useState<WorkspaceView>(initialView);
   const activeMeta =
     workspaceViews.find((view) => view.id === activeView) ?? workspaceViews[0];
 
+  useEffect(() => {
+    setActiveView(initialView);
+  }, [initialView]);
+
   function openView(nextView: WorkspaceView) {
+    setActiveView(nextView);
+
     startTransition(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(window.location.search);
 
       if (nextView === "overview") {
         params.delete("view");
@@ -596,10 +605,6 @@ function OverviewPanel({
       </div>
     </section>
   );
-}
-
-function isWorkspaceView(value: string | null): value is WorkspaceView {
-  return workspaceViews.some((view) => view.id === value);
 }
 
 function SidebarLink({
