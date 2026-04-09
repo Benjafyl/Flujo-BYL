@@ -1,0 +1,13 @@
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+.next/
+node_modules/
+.env.local
+.env.*.local
+.vercel/
+
+coverage/
+dist/
