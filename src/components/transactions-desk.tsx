@@ -3,7 +3,7 @@
 import { useDeferredValue, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, Search } from "lucide-react";
 
-import { formatCurrencyCLP } from "@/lib/dashboard-data";
+import { formatCurrencyCLP } from "@/lib/currency";
 import type { RecentTransaction } from "@/lib/finance-types";
 import { getCategoryAppearance } from "@/lib/merchant-rules";
 

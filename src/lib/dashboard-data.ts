@@ -1,5 +1,3 @@
-import type { User } from "@supabase/supabase-js";
-
 import type {
   AccountSnapshot,
   AutomationMethod,
@@ -9,15 +7,15 @@ import type {
   MonthlySnapshot,
   RecentTransaction,
   SetupFocusItem,
-  TransactionType,
   WeeklyFlowPoint,
 } from "@/lib/finance-types";
-
-const currencyFormatter = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
+import { formatCurrencyCLP } from "@/lib/currency";
+import {
+  getPersonalDashboardRecords,
+  type AccountRow,
+  type CategoryRow,
+  type TransactionRow,
+} from "@/lib/personal-finance";
 
 const dateFormatter = new Intl.DateTimeFormat("es-CL", {
   month: "long",
@@ -108,130 +106,25 @@ export const setupFocus: SetupFocusItem[] = [
   },
 ];
 
-type ProfileRow = {
-  full_name: string | null;
-  default_account_name: string | null;
-};
-
-type AccountRow = {
-  id: string;
-  name: string;
-  institution: string | null;
-  account_type: string;
-  balance: number | string;
-  credit_limit: number | string | null;
-  is_default: boolean;
-  display_order: number | null;
-  notes: string | null;
-};
-
-type CategoryRow = {
-  id: string;
-  slug: string;
-  name: string;
-  kind: "income" | "expense";
-  color: string | null;
-  sort_order: number;
-};
-
-type TransactionRow = {
-  id: string;
-  type: TransactionType;
-  amount: number | string;
-  occurred_at: string;
-  description_raw: string;
-  merchant_raw: string | null;
-  category_id: string | null;
-  account_id: string | null;
-};
-
-type BudgetRow = {
-  id: string;
-  category_id: string;
-  amount_limit: number | string;
-};
-
-type QueryResultBuilder = PromiseLike<{ data: unknown }> & {
-  eq: (column: string, value: string) => QueryResultBuilder;
-  gte: (column: string, value: string) => QueryResultBuilder;
-  lt: (column: string, value: string) => QueryResultBuilder;
-  order: (
-    column: string,
-    options?: {
-      ascending?: boolean;
-    },
-  ) => QueryResultBuilder;
-  limit: (value: number) => QueryResultBuilder;
-};
-
-export type DashboardSupabase = {
-  from: (table: string) => {
-    select: (columns: string) => QueryResultBuilder;
-  };
-};
-
-export async function getDashboardData(
-  supabase: DashboardSupabase,
-  user: Pick<User, "id" | "email">,
-) {
+export async function getDashboardData() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
   const monthDate = formatDateOnly(monthStart);
 
-  const [
-    profileResult,
-    accountsResult,
-    categoriesResult,
-    monthTransactionsResult,
-    recentTransactionsResult,
-    budgetsResult,
-  ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("full_name, default_account_name")
-      .eq("id", user.id),
-    supabase
-      .from("accounts")
-      .select(
-        "id, name, institution, account_type, balance, credit_limit, is_default, display_order, notes",
-      )
-      .order("display_order", { ascending: true })
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("categories")
-      .select("id, slug, name, kind, color, sort_order")
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("transactions")
-      .select(
-        "id, type, amount, occurred_at, description_raw, merchant_raw, category_id, account_id",
-      )
-      .gte("occurred_at", monthStart.toISOString())
-      .lt("occurred_at", nextMonth.toISOString())
-      .order("occurred_at", { ascending: false }),
-    supabase
-      .from("transactions")
-      .select(
-        "id, type, amount, occurred_at, description_raw, merchant_raw, category_id, account_id",
-      )
-      .order("occurred_at", { ascending: false })
-      .limit(12),
-    supabase
-      .from("monthly_budgets")
-      .select("id, category_id, amount_limit")
-      .eq("month_date", monthDate),
-  ]);
+  const { owner, profile, accounts, categories, monthTransactions, recentTransactions, budgets } =
+    await getPersonalDashboardRecords({
+      monthStartIso: monthStart.toISOString(),
+      nextMonthIso: nextMonth.toISOString(),
+      monthDate,
+    });
 
-  const profile = firstRow<ProfileRow>(profileResult.data);
-  const accounts = toRows<AccountRow>(accountsResult.data);
-  const categories = toRows<CategoryRow>(categoriesResult.data);
-  const monthTransactions = toRows<TransactionRow>(monthTransactionsResult.data);
-  const recentTransactions = toRows<TransactionRow>(recentTransactionsResult.data);
-  const budgets = toRows<BudgetRow>(budgetsResult.data);
-
-  const categoryById = new Map(categories.map((category) => [category.id, category]));
-  const accountById = new Map(accounts.map((account) => [account.id, account]));
+  const categoryById = new Map<string, CategoryRow>(
+    categories.map((category: CategoryRow) => [category.id, category]),
+  );
+  const accountById = new Map<string, AccountRow>(
+    accounts.map((account: AccountRow) => [account.id, account]),
+  );
 
   const normalizedAccounts = accounts.map((account) => toAccountSnapshot(account));
   const normalizedBudgets = budgets
@@ -269,7 +162,7 @@ export async function getDashboardData(
 
   return {
     userName:
-      profile?.full_name?.trim() || user.email?.split("@")[0] || "Benja",
+      profile.full_name?.trim() || owner.email.split("@")[0] || "Benja",
     monthLabel: capitalize(dateFormatter.format(monthStart)),
     defaultAccountId:
       accounts.find((account) => account.is_default)?.id ?? accounts[0]?.id ?? null,
@@ -290,28 +183,6 @@ export async function getDashboardData(
     hasTransactions: monthTransactions.length > 0,
     hasBudgets: normalizedBudgets.length > 0,
   } satisfies DashboardData;
-}
-
-export function formatCurrencyCLP(value: number) {
-  return currencyFormatter.format(value);
-}
-
-export function formatSignedCurrencyCLP(value: number) {
-  const prefix = value > 0 ? "+" : "";
-
-  return `${prefix}${formatCurrencyCLP(value)}`;
-}
-
-export function firstRow<T>(rows: unknown): T | null {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return null;
-  }
-
-  return rows[0] as T;
-}
-
-function toRows<T>(value: unknown): T[] {
-  return Array.isArray(value) ? (value as T[]) : [];
 }
 
 function toNumber(value: number | string | null | undefined) {

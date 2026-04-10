@@ -1,4 +1,4 @@
-import { formatCurrencyCLP } from "@/lib/dashboard-data";
+import { formatCurrencyCLP } from "@/lib/currency";
 import type { DashboardData, FinanceAnswer } from "@/lib/finance-types";
 
 export function answerFinanceQuestion(

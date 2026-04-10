@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   Link2,
   ListFilter,
-  LogOut,
   PiggyBank,
   Sparkles,
   WalletCards,
@@ -27,10 +26,9 @@ import { TransactionsDesk } from "@/components/transactions-desk";
 import {
   formatCurrencyCLP,
   formatSignedCurrencyCLP,
-} from "@/lib/dashboard-data";
+} from "@/lib/currency";
 import type { DashboardData } from "@/lib/finance-types";
 import { getCategoryAppearance } from "@/lib/merchant-rules";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type WorkspaceView =
   | "overview"
@@ -108,7 +106,6 @@ export function DashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const [activeView, setActiveView] = useState<WorkspaceView>(initialView);
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const activeMeta =
     workspaceViews.find((view) => view.id === activeView) ?? workspaceViews[0];
 
@@ -133,18 +130,6 @@ export function DashboardShell({
         scroll: false,
       });
     });
-  }
-
-  async function signOut() {
-    setIsSigningOut(true);
-
-    try {
-      const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
-      router.refresh();
-    } finally {
-      setIsSigningOut(false);
-    }
   }
 
   return (
@@ -199,16 +184,7 @@ export function DashboardShell({
                 label="Movimientos"
                 value={`${data.monthlySnapshot.transactionCount}`}
               />
-              <button
-                type="button"
-                onClick={() => {
-                  void signOut();
-                }}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[20px] border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                <LogOut className="h-4 w-4" />
-                {isSigningOut ? "Saliendo..." : "Salir"}
-              </button>
+              <SidebarMetric label="Modo" value="Personal" />
             </div>
           </aside>
 

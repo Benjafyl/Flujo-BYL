@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { savePersonalTransaction } from "@/lib/personal-finance";
 import { parseTransactionInput } from "@/lib/transaction-parser";
 
 const requestSchema = z
@@ -52,22 +53,50 @@ export async function POST(request: Request) {
 
   const captureText = composeCaptureText(parsedBody.data);
   const parsedTransaction = parseTransactionInput(captureText);
+  const occurredAt = parsedBody.data.occurredAt ?? parsedTransaction.occurredAtIso;
 
-  return NextResponse.json(
-    {
-      receivedAt: new Date().toISOString(),
-      source: parsedBody.data.source ?? "shortcut",
-      device: parsedBody.data.device ?? null,
-      captureText,
+  if (!parsedTransaction.amount) {
+    return NextResponse.json(
+      {
+        error: "No pude detectar un monto para registrar desde el atajo.",
+      },
+      { status: 422 },
+    );
+  }
+
+  try {
+    const savedTransaction = await savePersonalTransaction({
       parsedTransaction: {
         ...parsedTransaction,
-        occurredAtIso: parsedBody.data.occurredAt ?? parsedTransaction.occurredAtIso,
+        occurredAtIso: occurredAt,
       },
-      nextStep: "store-when-authenticated",
-      persistenceStatus: "pending-auth-session",
-    },
-    { status: 202 },
-  );
+      source: mapShortcutSource(parsedBody.data.source),
+      descriptionRaw: captureText,
+      overrideOccurredAt: occurredAt,
+    });
+
+    return NextResponse.json(
+      {
+        receivedAt: new Date().toISOString(),
+        source: parsedBody.data.source ?? "shortcut",
+        device: parsedBody.data.device ?? null,
+        captureText,
+        parsedTransaction: savedTransaction.parsedTransaction,
+        transaction: savedTransaction.transaction,
+        accountLabel: savedTransaction.accountLabel,
+        summary: savedTransaction.summary,
+        persistenceStatus: "stored",
+      },
+      { status: 201 },
+    );
+  } catch {
+    return NextResponse.json(
+      {
+        error: "No pude guardar el movimiento del atajo.",
+      },
+      { status: 500 },
+    );
+  }
 }
 
 function composeCaptureText(payload: z.infer<typeof requestSchema>) {
@@ -91,4 +120,18 @@ function formatShortcutAmount(amount: number, currency?: string) {
   }
 
   return String(Math.round(amount));
+}
+
+function mapShortcutSource(
+  source: z.infer<typeof requestSchema>["source"],
+): "manual" | "voice" | "import" | "rule" {
+  switch (source) {
+    case "voice_button":
+      return "voice";
+    case "apple_pay":
+    case "shortcut":
+    case "message":
+    default:
+      return "rule";
+  }
 }

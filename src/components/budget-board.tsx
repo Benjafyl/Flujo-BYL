@@ -1,6 +1,6 @@
 import { AlertTriangle, Flag, PiggyBank, TrendingUp } from "lucide-react";
 
-import { formatCurrencyCLP } from "@/lib/dashboard-data";
+import { formatCurrencyCLP } from "@/lib/currency";
 import type {
   BudgetCategory,
   MonthlySnapshot,

@@ -17,7 +17,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
-import { formatCurrencyCLP } from "@/lib/dashboard-data";
+import { formatCurrencyCLP } from "@/lib/currency";
 import type {
   CapturedTransactionResult,
   ParsedTransactionCandidate,
