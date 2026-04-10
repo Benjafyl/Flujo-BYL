@@ -1,8 +1,18 @@
-import { AudioLines, Link2, MessagesSquare, ShieldCheck, WalletCards } from "lucide-react";
+import {
+  AudioLines,
+  Link2,
+  MessagesSquare,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
 
-import { automationMethods } from "@/lib/dashboard-data";
+import type { AutomationMethod } from "@/lib/finance-types";
 
-export function AutomationPlaybook() {
+export function AutomationPlaybook({
+  automationMethods,
+}: {
+  automationMethods: AutomationMethod[];
+}) {
   const icons = [WalletCards, AudioLines, MessagesSquare];
 
   return (
@@ -115,11 +125,11 @@ export function AutomationPlaybook() {
               />
               <StepLine
                 number="2"
-                text="FLUJO normaliza el texto y devuelve categoria, confianza y fecha."
+                text="FLUJO normaliza el texto, detecta categoria y decide la cuenta objetivo."
               />
               <StepLine
                 number="3"
-                text="Si la confianza es alta, solo revisas rapido. Si es media, confirmas."
+                text="El movimiento se registra y luego lo editas solo si quieres afinar algo."
               />
             </div>
           </article>

@@ -1,22 +1,13 @@
 "use client";
 
 import { useDeferredValue, useState } from "react";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Clock3,
-  Search,
-  ShieldAlert,
-} from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Search } from "lucide-react";
 
-import {
-  formatCurrencyCLP,
-  recentTransactions,
-} from "@/lib/dashboard-data";
+import { formatCurrencyCLP } from "@/lib/dashboard-data";
 import type { RecentTransaction } from "@/lib/finance-types";
-import { categoryMeta } from "@/lib/merchant-rules";
+import { getCategoryAppearance } from "@/lib/merchant-rules";
 
-type TransactionFilter = "all" | "expense" | "income" | "review";
+type TransactionFilter = "all" | "expense" | "income";
 
 const filterOptions: Array<{
   id: TransactionFilter;
@@ -25,25 +16,25 @@ const filterOptions: Array<{
   { id: "all", label: "Todos" },
   { id: "expense", label: "Egresos" },
   { id: "income", label: "Ingresos" },
-  { id: "review", label: "Revisar" },
 ];
 
-export function TransactionsDesk() {
+export function TransactionsDesk({
+  transactions,
+}: {
+  transactions: RecentTransaction[];
+}) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TransactionFilter>("all");
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const visibleTransactions = recentTransactions.filter((transaction) =>
+  const visibleTransactions = transactions.filter((transaction) =>
     matchesTransaction(transaction, filter, normalizedQuery),
   );
-  const expenseCount = recentTransactions.filter(
+  const expenseCount = transactions.filter(
     (transaction) => transaction.type === "expense",
   ).length;
-  const incomeCount = recentTransactions.filter(
+  const incomeCount = transactions.filter(
     (transaction) => transaction.type === "income",
-  ).length;
-  const reviewCount = recentTransactions.filter(
-    (transaction) => transaction.needsReview,
   ).length;
 
   return (
@@ -54,14 +45,13 @@ export function TransactionsDesk() {
             Movimientos
           </p>
           <h2 className="section-title mt-2 text-3xl font-semibold text-[color:var(--ink)]">
-            Buscar, filtrar y revisar
+            Buscar y filtrar
           </h2>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <DeskStat label="Egresos" value={`${expenseCount}`} icon={ArrowDownLeft} />
           <DeskStat label="Ingresos" value={`${incomeCount}`} icon={ArrowUpRight} />
-          <DeskStat label="Revisar" value={`${reviewCount}`} icon={ShieldAlert} />
         </div>
       </div>
 
@@ -73,7 +63,7 @@ export function TransactionsDesk() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="min-h-[44px] w-full rounded-full border border-[color:var(--line)] bg-white pl-11 pr-4 text-sm outline-none transition focus:border-[color:var(--accent)]"
-              placeholder="Buscar por comercio, cuenta o descripcion"
+              placeholder="Buscar por comercio, cuenta o fecha"
             />
           </label>
 
@@ -99,7 +89,10 @@ export function TransactionsDesk() {
       <div className="mt-5 space-y-3">
         {visibleTransactions.length > 0 ? (
           visibleTransactions.map((transaction) => {
-            const meta = categoryMeta[transaction.category];
+            const meta = getCategoryAppearance(
+              transaction.categorySlug,
+              transaction.categoryLabel,
+            );
 
             return (
               <article
@@ -108,19 +101,12 @@ export function TransactionsDesk() {
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className="rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
-                        style={{ background: meta.soft, color: meta.ink }}
-                      >
-                        {meta.label}
-                      </span>
-                      {transaction.needsReview ? (
-                        <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-                          revisar
-                        </span>
-                      ) : null}
-                    </div>
+                    <span
+                      className="rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
+                      style={{ background: meta.soft, color: meta.ink }}
+                    >
+                      {meta.label}
+                    </span>
 
                     <p className="mt-3 text-base font-semibold text-[color:var(--ink)]">
                       {transaction.title}
@@ -133,10 +119,7 @@ export function TransactionsDesk() {
                       <span className="rounded-full bg-[color:var(--surface-muted)] px-3 py-1">
                         {transaction.account}
                       </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock3 className="h-3.5 w-3.5" />
-                        {transaction.occurredAt}
-                      </span>
+                      <span>{transaction.occurredAt}</span>
                     </div>
                   </div>
 
@@ -179,10 +162,6 @@ function matchesTransaction(
     return false;
   }
 
-  if (filter === "review" && !transaction.needsReview) {
-    return false;
-  }
-
   if (!query) {
     return true;
   }
@@ -192,6 +171,7 @@ function matchesTransaction(
     transaction.description,
     transaction.account,
     transaction.occurredAt,
+    transaction.categoryLabel,
   ]
     .join(" ")
     .toLowerCase()

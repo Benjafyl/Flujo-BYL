@@ -53,13 +53,12 @@ export function parseTransactionInput(input: string): ParsedTransactionCandidate
 
   confidence = Math.min(confidence, 0.98);
 
-  const needsReview = confidence < 0.9;
+  const needsReview = false;
   const explanation = buildExplanation({
     amount,
     type,
     merchant,
     category,
-    needsReview,
     merchantMatched: Boolean(matchedMerchantRule),
     detectedDateLabel: occurredAt?.label ?? null,
   });
@@ -171,6 +170,14 @@ function inferCategory(
       return "salary";
     }
 
+    if (
+      normalizedText.includes("finiquito") ||
+      normalizedText.includes("interchileclima") ||
+      normalizedText.includes("indemnizacion")
+    ) {
+      return "severance";
+    }
+
     if (normalizedText.includes("reembolso")) {
       return "refund";
     }
@@ -212,6 +219,43 @@ function inferCategory(
     normalizedText.includes("bip")
   ) {
     return "transport";
+  }
+
+  if (
+    normalizedText.includes("gasto comun") ||
+    normalizedText.includes("gasto común") ||
+    normalizedText.includes("condominio") ||
+    normalizedText.includes("edificio")
+  ) {
+    return "condo_fees";
+  }
+
+  if (
+    normalizedText.includes("agua") ||
+    normalizedText.includes("luz") ||
+    normalizedText.includes("electricidad") ||
+    normalizedText.includes("servicios basicos") ||
+    normalizedText.includes("servicios básicos")
+  ) {
+    return "utilities";
+  }
+
+  if (
+    normalizedText.includes("internet") ||
+    normalizedText.includes("fibra") ||
+    normalizedText.includes("movistar hogar") ||
+    normalizedText.includes("vtr") ||
+    normalizedText.includes("entel hogar")
+  ) {
+    return "internet";
+  }
+
+  if (
+    normalizedText.includes("tenpo") ||
+    normalizedText.includes("credito") ||
+    normalizedText.includes("crédito")
+  ) {
+    return "debt";
   }
 
   if (
@@ -333,7 +377,6 @@ function buildExplanation({
   type,
   merchant,
   category,
-  needsReview,
   merchantMatched,
   detectedDateLabel,
 }: {
@@ -341,7 +384,6 @@ function buildExplanation({
   type: TransactionType;
   merchant: string | null;
   category: CategorySlug | null;
-  needsReview: boolean;
   merchantMatched: boolean;
   detectedDateLabel: string | null;
 }) {
@@ -350,16 +392,14 @@ function buildExplanation({
     `Lo interprete como ${renderType(type)}.`,
     detectedDateLabel
       ? `La fecha sugerida es ${detectedDateLabel}.`
-      : "Asumi que el movimiento corresponde a hoy si se confirma.",
+      : "Si no indicaste fecha, queda registrado en hoy.",
     merchant
       ? merchantMatched
         ? `El comercio coincide con una regla conocida: ${merchant}.`
         : `El merchant sugerido es ${merchant}.`
       : "No hubo un comercio inequivoco en el texto.",
     category ? `La categoria detectada es ${category}.` : "No hubo categoria concluyente.",
-    needsReview
-      ? "La confianza es media, asi que conviene confirmar antes de guardar."
-      : "La confianza es alta y el movimiento queda listo para guardarse.",
+    "Si lo envias desde la captura, se registra directo.",
   ];
 
   return fragments.join(" ");

@@ -2,11 +2,11 @@
 
 import {
   AudioLines,
+  CheckCircle2,
   LoaderCircle,
   Mic,
   Send,
   Square,
-  WandSparkles,
 } from "lucide-react";
 import {
   startTransition,
@@ -15,14 +15,14 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 
-import {
-  captureExamples,
-  findBudgetByCategory,
-  formatCurrencyCLP,
-} from "@/lib/dashboard-data";
-import type { ParsedTransactionCandidate } from "@/lib/finance-types";
-import { categoryMeta } from "@/lib/merchant-rules";
+import { formatCurrencyCLP } from "@/lib/dashboard-data";
+import type {
+  CapturedTransactionResult,
+  ParsedTransactionCandidate,
+} from "@/lib/finance-types";
+import { getCategoryAppearance } from "@/lib/merchant-rules";
 
 type CaptureMode = "type" | "voice";
 
@@ -56,58 +56,72 @@ declare global {
   }
 }
 
-export function CaptureStudio() {
+export function CaptureStudio({
+  captureExamples,
+  defaultAccountLabel,
+}: {
+  captureExamples: string[];
+  defaultAccountLabel: string | null;
+}) {
+  const router = useRouter();
   const [mode, setMode] = useState<CaptureMode>("type");
-  const [input, setInput] = useState(captureExamples[0]);
-  const [parsed, setParsed] = useState<ParsedTransactionCandidate | null>(null);
-  const [isParsing, setIsParsing] = useState(false);
+  const [input, setInput] = useState(captureExamples[0] ?? "");
+  const [saved, setSaved] = useState<CapturedTransactionResult | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const latestInputRef = useRef(input);
 
-  async function runParser(text: string) {
+  async function registerMovement(
+    text: string,
+    source: "manual" | "voice",
+  ) {
     if (!text.trim()) {
-      setError("Escribe o dicta algo antes de procesarlo.");
+      setError("Escribe o dicta algo antes de registrarlo.");
       return;
     }
 
     setError(null);
-    setIsParsing(true);
+    setIsSaving(true);
 
     try {
-      const response = await fetch("/api/parse-transaction", {
+      const response = await fetch("/api/capture-transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, source }),
       });
 
+      const payload = (await response.json().catch(() => null)) as
+        | CapturedTransactionResult
+        | { error?: string };
+
       if (!response.ok) {
-        throw new Error("No pude interpretar la entrada.");
+        throw new Error(payload && "error" in payload ? payload.error : "No pude guardar el movimiento.");
       }
 
-      const result = (await response.json()) as ParsedTransactionCandidate;
-      setParsed(result);
+      setSaved(payload as CapturedTransactionResult);
+      router.refresh();
     } catch (caughtError) {
-      setParsed(null);
+      setSaved(null);
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Hubo un problema procesando la captura.",
+          : "Hubo un problema guardando el movimiento.",
       );
     } finally {
-      setIsParsing(false);
+      setIsSaving(false);
     }
   }
 
-  const parseLatestTranscript = useEffectEvent(() => {
+  const saveLatestTranscript = useEffectEvent(() => {
     const transcript = latestInputRef.current.trim();
     if (transcript) {
       startTransition(() => {
-        void runParser(transcript);
+        void registerMovement(transcript, "voice");
       });
     }
   });
@@ -151,7 +165,7 @@ export function CaptureStudio() {
     };
     recognition.onend = () => {
       setIsListening(false);
-      parseLatestTranscript();
+      saveLatestTranscript();
     };
 
     recognitionRef.current = recognition;
@@ -162,11 +176,11 @@ export function CaptureStudio() {
     };
   }, []);
 
-  const activeBudget = findBudgetByCategory(parsed?.category);
-  const remainingBudget =
-    activeBudget && parsed?.amount && parsed.type === "expense"
-      ? activeBudget.limit - activeBudget.spent - parsed.amount
-      : null;
+  const parsed: ParsedTransactionCandidate | null = saved?.parsedTransaction ?? null;
+  const parsedCategory = getCategoryAppearance(
+    parsed?.category,
+    parsed?.category ?? null,
+  );
 
   return (
     <section className="glass-panel rounded-[32px] p-5 sm:p-6">
@@ -179,7 +193,7 @@ export function CaptureStudio() {
             Nuevo movimiento
           </h2>
           <p className="mt-2 text-sm text-[color:var(--muted)]">
-            Texto o voz. Lectura inmediata con categoria y monto.
+            Escribe o habla. Se registra directo en tu cuenta principal.
           </p>
         </div>
 
@@ -215,12 +229,7 @@ export function CaptureStudio() {
               <button
                 key={example}
                 type="button"
-                onClick={() => {
-                  setInput(example);
-                  startTransition(() => {
-                    void runParser(example);
-                  });
-                }}
+                onClick={() => setInput(example)}
                 className="rounded-full border border-[color:var(--line)] bg-white px-3 py-2 text-xs font-medium text-[color:var(--muted)] transition hover:border-[color:var(--line-strong)] hover:text-[color:var(--ink)]"
               >
                 {example}
@@ -233,17 +242,17 @@ export function CaptureStudio() {
               type="button"
               onClick={() => {
                 startTransition(() => {
-                  void runParser(input);
+                  void registerMovement(input, "manual");
                 });
               }}
               className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--accent)]"
             >
-              {isParsing ? (
+              {isSaving ? (
                 <LoaderCircle className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              Interpretar
+              Registrar
             </button>
 
             <button
@@ -270,7 +279,7 @@ export function CaptureStudio() {
               className="inline-flex items-center gap-2 rounded-full border border-[color:var(--line)] bg-white px-4 py-3 text-sm font-semibold text-[color:var(--ink)] transition hover:border-[color:var(--line-strong)]"
             >
               {isListening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {isListening ? "Detener grabacion" : "Registrar por voz"}
+              {isListening ? "Detener" : "Registrar por voz"}
             </button>
           </div>
 
@@ -278,9 +287,9 @@ export function CaptureStudio() {
             <AudioLines className="h-4 w-4 text-[color:var(--accent)]" />
             {mode === "voice"
               ? voiceSupported
-                ? "Modo voz listo. Dicta con lenguaje natural y se interpreta al terminar."
-                : "Tu navegador no expone voz. Usa texto y mantendremos el mismo parser."
-              : "Puedes escribir como hablas: monto, merchant, fecha o contexto."}
+                ? "Dicta normal. Cuando termines, se guarda automaticamente."
+                : "Tu navegador no expone voz. Usa texto y seguimos igual de rapido."
+              : `Cuenta por defecto: ${defaultAccountLabel ?? "la principal que definas"}.`}
           </div>
 
           {error ? (
@@ -292,77 +301,49 @@ export function CaptureStudio() {
 
         <div className="rounded-[28px] border border-[color:var(--line)] bg-white/75 p-4 sm:p-5">
           <div className="flex items-center gap-2">
-            <WandSparkles className="h-4 w-4 text-[color:var(--accent-strong)]" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">
-              Resultado del parser
+              Ultimo registro
             </p>
           </div>
 
-          {parsed ? (
+          {saved && parsed ? (
             <div className="mt-4 space-y-4">
               <div className="rounded-[22px] bg-[color:var(--surface-strong)] p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm text-[color:var(--muted)]">Lectura</p>
-                  <span
-                    className={`rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
-                      parsed.needsReview
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-emerald-100 text-emerald-700"
-                    }`}
-                  >
-                    {parsed.needsReview ? "revisar" : "listo"}
+                  <p className="text-sm text-[color:var(--muted)]">Guardado</p>
+                  <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                    registrado
                   </span>
                 </div>
                 <p className="mt-2 text-2xl font-semibold">
-                  {parsed.amount ? formatCurrencyCLP(parsed.amount) : "Monto pendiente"}
+                  {parsed.amount ? formatCurrencyCLP(parsed.amount) : "Sin monto"}
                 </p>
                 <p className="mt-2 text-sm text-[color:var(--muted)]">{parsed.input}</p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <ParsedValue label="Tipo" value={parsed.type} />
-                <ParsedValue label="Merchant" value={parsed.merchant ?? "Pendiente"} />
+                <ParsedValue label="Merchant" value={parsed.merchant ?? "Sin merchant"} />
+                <ParsedValue label="Categoria" value={parsedCategory.label} />
+                <ParsedValue label="Cuenta" value={saved.accountLabel} />
                 <ParsedValue
-                  label="Categoria"
-                  value={
-                    parsed.category ? categoryMeta[parsed.category].label : "Pendiente"
-                  }
+                  label="Fecha"
+                  value={parsed.detectedDateLabel ?? "Hoy"}
                 />
                 <ParsedValue
                   label="Confianza"
                   value={`${Math.round(parsed.confidence * 100)}%`}
                 />
-                <ParsedValue
-                  label="Fecha"
-                  value={parsed.detectedDateLabel ?? "Hoy"}
-                />
               </div>
 
-              {activeBudget ? (
-                <div className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--accent-soft)] px-4 py-4">
-                  <p className="text-sm font-semibold text-[color:var(--accent-strong)]">
-                    Impacto en presupuesto
-                  </p>
-                  <p className="mt-2 text-sm text-[color:var(--ink)]">
-                    {activeBudget.label} lleva {formatCurrencyCLP(activeBudget.spent)} de{" "}
-                    {formatCurrencyCLP(activeBudget.limit)}.
-                  </p>
-                  <p className="mt-2 text-sm text-[color:var(--ink)]">
-                    {remainingBudget !== null
-                      ? `Si guardas este gasto, quedarian ${formatCurrencyCLP(remainingBudget)}.`
-                      : "Este movimiento no afecta un presupuesto de gasto."}
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="rounded-[22px] border border-dashed border-[color:var(--line-strong)] bg-white px-4 py-4 text-sm leading-6 text-[color:var(--muted)]">
-                {parsed.explanation}
+              <div className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] px-4 py-4 text-sm leading-6 text-[color:var(--muted)]">
+                {saved.summary}
               </div>
             </div>
           ) : (
             <div className="mt-6 rounded-[24px] border border-dashed border-[color:var(--line-strong)] bg-[color:var(--surface-strong)] px-4 py-10 text-center text-sm leading-6 text-[color:var(--muted)]">
-              Aqui apareceran monto, categoria, merchant y cuanto presupuesto quedaria
-              despues de interpretar tu gasto.
+              Tu ultimo registro aparecerá aqui con monto, categoría y cuenta.
             </div>
           )}
         </div>

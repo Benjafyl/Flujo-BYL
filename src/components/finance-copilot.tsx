@@ -3,11 +3,10 @@
 import { BrainCircuit, LoaderCircle, Send, Sparkles } from "lucide-react";
 import { startTransition, useState } from "react";
 
-import { askFinancePrompts } from "@/lib/dashboard-data";
 import type { FinanceAnswer } from "@/lib/finance-types";
 
-export function FinanceCopilot() {
-  const [question, setQuestion] = useState(askFinancePrompts[0]);
+export function FinanceCopilot({ prompts }: { prompts: string[] }) {
+  const [question, setQuestion] = useState(prompts[0] ?? "");
   const [answer, setAnswer] = useState<FinanceAnswer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +58,7 @@ export function FinanceCopilot() {
             Consulta rapida
           </h2>
           <p className="mt-2 text-sm text-[color:var(--muted)]">
-            Pregunta por categorias, limites o ingresos.
+            Pregunta por categorias, limites, deuda o ingresos.
           </p>
         </div>
 
@@ -77,7 +76,7 @@ export function FinanceCopilot() {
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             className="min-w-0 flex-1 rounded-full border border-[color:var(--line)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[color:var(--accent)]"
-            placeholder="Ejemplo: en que categoria gaste mas?"
+            placeholder="Ejemplo: cuanto debo hoy en Tenpo?"
           />
           <button
             type="button"
@@ -98,7 +97,7 @@ export function FinanceCopilot() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {askFinancePrompts.map((prompt) => (
+          {prompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
@@ -151,7 +150,7 @@ export function FinanceCopilot() {
           </div>
         ) : (
           <div className="text-sm leading-6 text-[color:var(--muted)]">
-            Escribe una pregunta y veras una lectura directa del mes.
+            Escribe una pregunta y veras una lectura directa del mes real.
           </div>
         )}
       </div>

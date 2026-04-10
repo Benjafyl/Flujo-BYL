@@ -1,23 +1,6 @@
 export type TransactionType = "income" | "expense" | "transfer";
 
-export type CategorySlug =
-  | "salary"
-  | "freelance"
-  | "refund"
-  | "sale"
-  | "transfer_in"
-  | "supermarket"
-  | "snacks"
-  | "delivery"
-  | "transport"
-  | "education"
-  | "home"
-  | "health"
-  | "subscriptions"
-  | "leisure"
-  | "shopping"
-  | "gifts"
-  | "other";
+export type CategorySlug = string;
 
 export interface WeeklyFlowPoint {
   label: string;
@@ -30,9 +13,7 @@ export interface CategoryInsight {
   label: string;
   amount: number;
   share: number;
-  change: number;
-  budgetFill: number;
-  description: string;
+  budgetFill: number | null;
 }
 
 export interface RecentTransaction {
@@ -41,28 +22,30 @@ export interface RecentTransaction {
   description: string;
   amount: number;
   type: TransactionType;
-  category: CategorySlug;
+  categorySlug: CategorySlug | null;
+  categoryLabel: string;
   account: string;
   occurredAt: string;
-  needsReview?: boolean;
 }
 
 export interface AccountSnapshot {
+  id: string;
   name: string;
+  institution: string | null;
   balance: number;
+  creditLimit: number;
+  accountType: string;
   note: string;
+  isDefault: boolean;
 }
 
 export interface MonthlySnapshot {
   income: number;
   expenses: number;
   balance: number;
-  incomeDelta: number;
-  expenseDelta: number;
-  balanceDelta: number;
-  budgetUsed: number;
+  budgetUsed: number | null;
   dailyExpenseAverage: number;
-  reviewQueue: number;
+  transactionCount: number;
 }
 
 export interface ParsedTransactionCandidate {
@@ -87,6 +70,7 @@ export interface MerchantRule {
 }
 
 export interface BudgetCategory {
+  id: string;
   slug: CategorySlug;
   label: string;
   spent: number;
@@ -118,4 +102,35 @@ export interface FinanceAnswer {
   title: string;
   summary: string;
   bullets: string[];
+}
+
+export interface SetupFocusItem {
+  title: string;
+  detail: string;
+}
+
+export interface DashboardData {
+  userName: string;
+  monthLabel: string;
+  defaultAccountId: string | null;
+  defaultAccountLabel: string | null;
+  monthlySnapshot: MonthlySnapshot;
+  weeklyFlow: WeeklyFlowPoint[];
+  categoryInsights: CategoryInsight[];
+  budgetCategories: BudgetCategory[];
+  recentTransactions: RecentTransaction[];
+  accountSnapshots: AccountSnapshot[];
+  automationMethods: AutomationMethod[];
+  askFinancePrompts: string[];
+  captureExamples: string[];
+  setupFocus: SetupFocusItem[];
+  hasTransactions: boolean;
+  hasBudgets: boolean;
+}
+
+export interface CapturedTransactionResult {
+  transaction: RecentTransaction;
+  parsedTransaction: ParsedTransactionCandidate;
+  accountLabel: string;
+  summary: string;
 }

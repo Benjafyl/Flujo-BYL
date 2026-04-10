@@ -1,26 +1,22 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import {
-  Activity,
-  startTransition,
-} from "react";
+import { Activity, startTransition, useEffect, useState } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
   AudioLines,
   BrainCircuit,
   ChartColumnIncreasing,
-  Clock3,
   Landmark,
   LayoutDashboard,
   Link2,
   ListFilter,
+  LogOut,
   PiggyBank,
   Sparkles,
   WalletCards,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { AutomationPlaybook } from "@/components/automation-playbook";
@@ -29,15 +25,12 @@ import { CaptureStudio } from "@/components/capture-studio";
 import { FinanceCopilot } from "@/components/finance-copilot";
 import { TransactionsDesk } from "@/components/transactions-desk";
 import {
-  accountSnapshots,
-  categoryInsights,
   formatCurrencyCLP,
   formatSignedCurrencyCLP,
-  monthlySnapshot,
-  recentTransactions,
-  weeklyFlow,
 } from "@/lib/dashboard-data";
-import { categoryMeta } from "@/lib/merchant-rules";
+import type { DashboardData } from "@/lib/finance-types";
+import { getCategoryAppearance } from "@/lib/merchant-rules";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type WorkspaceView =
   | "overview"
@@ -60,7 +53,7 @@ const workspaceViews: Array<{
     label: "Resumen",
     shortLabel: "Resumen",
     title: "Vista general",
-    description: "Balance, categorias y actividad del mes.",
+    description: "Tus totales reales, cuentas y foco del mes.",
     icon: LayoutDashboard,
   },
   {
@@ -68,7 +61,7 @@ const workspaceViews: Array<{
     label: "Captura",
     shortLabel: "Captura",
     title: "Nuevo movimiento",
-    description: "Texto o voz con clasificacion inmediata.",
+    description: "Texto o voz con guardado inmediato.",
     icon: AudioLines,
   },
   {
@@ -76,7 +69,7 @@ const workspaceViews: Array<{
     label: "Movimientos",
     shortLabel: "Movs",
     title: "Movimientos",
-    description: "Filtra y revisa lo ultimo que entro o salio.",
+    description: "Filtra y recorre todo lo que ya registraste.",
     icon: ListFilter,
   },
   {
@@ -84,7 +77,7 @@ const workspaceViews: Array<{
     label: "Presupuestos",
     shortLabel: "Limites",
     title: "Presupuestos",
-    description: "Restante por categoria y puntos de tension.",
+    description: "Restante por categoria y control del mes.",
     icon: PiggyBank,
   },
   {
@@ -92,7 +85,7 @@ const workspaceViews: Array<{
     label: "Analista",
     shortLabel: "Analista",
     title: "Analista",
-    description: "Preguntas rapidas sobre tus numeros.",
+    description: "Preguntas puntuales sobre tus numeros reales.",
     icon: BrainCircuit,
   },
   {
@@ -100,19 +93,22 @@ const workspaceViews: Array<{
     label: "Automatizar",
     shortLabel: "Atajos",
     title: "Automatizaciones",
-    description: "Atajos, webhook y entradas automáticas.",
+    description: "Shortcut, voz y el siguiente paso para registro automatico.",
     icon: Link2,
   },
 ];
 
 export function DashboardShell({
   initialView,
+  data,
 }: {
   initialView: WorkspaceView;
+  data: DashboardData;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [activeView, setActiveView] = useState<WorkspaceView>(initialView);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const activeMeta =
     workspaceViews.find((view) => view.id === activeView) ?? workspaceViews[0];
 
@@ -139,6 +135,18 @@ export function DashboardShell({
     });
   }
 
+  async function signOut() {
+    setIsSigningOut(true);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut();
+      router.refresh();
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
+
   return (
     <>
       <a href="#workspace-main" className="skip-link">
@@ -156,10 +164,10 @@ export function DashboardShell({
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold tracking-tight text-white">
-                    Dinero claro en un solo workspace.
+                    {data.userName}, tu dinero en orden.
                   </h1>
                   <p className="mt-2 text-sm leading-6 text-slate-300">
-                    Abril 2026 · Todo sincronizado desde una sola vista.
+                    {data.monthLabel}. Sin datos ficticios ni pantallas rellenas.
                   </p>
                 </div>
               </div>
@@ -181,16 +189,26 @@ export function DashboardShell({
             <div className="space-y-3">
               <SidebarMetric
                 label="Balance"
-                value={formatCurrencyCLP(monthlySnapshot.balance)}
+                value={formatCurrencyCLP(data.monthlySnapshot.balance)}
               />
               <SidebarMetric
-                label="Usado"
-                value={`${Math.round(monthlySnapshot.budgetUsed * 100)}%`}
+                label="Gasto"
+                value={formatCurrencyCLP(data.monthlySnapshot.expenses)}
               />
               <SidebarMetric
-                label="Revisar"
-                value={`${monthlySnapshot.reviewQueue}`}
+                label="Movimientos"
+                value={`${data.monthlySnapshot.transactionCount}`}
               />
+              <button
+                type="button"
+                onClick={() => {
+                  void signOut();
+                }}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[20px] border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                <LogOut className="h-4 w-4" />
+                {isSigningOut ? "Saliendo..." : "Salir"}
+              </button>
             </div>
           </aside>
 
@@ -202,7 +220,7 @@ export function DashboardShell({
                     FLUJO BYL
                   </p>
                   <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[color:var(--ink)]">
-                    Workspace personal
+                    {data.userName}
                   </h1>
                 </div>
                 <div className="rounded-[20px] bg-[color:var(--surface-muted)] px-3 py-2 text-right">
@@ -210,7 +228,7 @@ export function DashboardShell({
                     Balance
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[color:var(--ink)]">
-                    {formatCurrencyCLP(monthlySnapshot.balance)}
+                    {formatCurrencyCLP(data.monthlySnapshot.balance)}
                   </p>
                 </div>
               </div>
@@ -246,19 +264,19 @@ export function DashboardShell({
                   <MiniStatCard
                     icon={ArrowUpRight}
                     label="Ingresos"
-                    value={formatCurrencyCLP(monthlySnapshot.income)}
+                    value={formatCurrencyCLP(data.monthlySnapshot.income)}
                     tone="text-emerald-600 bg-emerald-50"
                   />
                   <MiniStatCard
                     icon={ArrowDownLeft}
                     label="Egresos"
-                    value={formatCurrencyCLP(monthlySnapshot.expenses)}
+                    value={formatCurrencyCLP(data.monthlySnapshot.expenses)}
                     tone="text-orange-600 bg-orange-50"
                   />
                   <MiniStatCard
-                    icon={Clock3}
-                    label="Pendientes"
-                    value={`${monthlySnapshot.reviewQueue}`}
+                    icon={Landmark}
+                    label="Cuentas"
+                    value={`${data.accountSnapshots.length}`}
                     tone="text-sky-700 bg-sky-50"
                   />
                 </div>
@@ -267,27 +285,34 @@ export function DashboardShell({
 
             <div id="workspace-main" className="space-y-4">
               <Activity mode={activeView === "overview" ? "visible" : "hidden"}>
-                <OverviewPanel openView={openView} />
+                <OverviewPanel data={data} openView={openView} />
               </Activity>
 
               <Activity mode={activeView === "capture" ? "visible" : "hidden"}>
-                <CaptureStudio />
+                <CaptureStudio
+                  captureExamples={data.captureExamples}
+                  defaultAccountLabel={data.defaultAccountLabel}
+                />
               </Activity>
 
               <Activity mode={activeView === "transactions" ? "visible" : "hidden"}>
-                <TransactionsDesk />
+                <TransactionsDesk transactions={data.recentTransactions} />
               </Activity>
 
               <Activity mode={activeView === "budget" ? "visible" : "hidden"}>
-                <BudgetBoard />
+                <BudgetBoard
+                  budgetCategories={data.budgetCategories}
+                  monthlySnapshot={data.monthlySnapshot}
+                  setupFocus={data.setupFocus}
+                />
               </Activity>
 
               <Activity mode={activeView === "assistant" ? "visible" : "hidden"}>
-                <FinanceCopilot />
+                <FinanceCopilot prompts={data.askFinancePrompts} />
               </Activity>
 
               <Activity mode={activeView === "automation" ? "visible" : "hidden"}>
-                <AutomationPlaybook />
+                <AutomationPlaybook automationMethods={data.automationMethods} />
               </Activity>
             </div>
           </div>
@@ -298,11 +323,15 @@ export function DashboardShell({
 }
 
 function OverviewPanel({
+  data,
   openView,
 }: {
+  data: DashboardData;
   openView: (view: WorkspaceView) => void;
 }) {
-  const strongestCategory = categoryInsights[0];
+  const strongestCategory = data.categoryInsights[0] ?? null;
+  const defaultAccount =
+    data.accountSnapshots.find((account) => account.isDefault) ?? data.accountSnapshots[0];
 
   return (
     <section className="grid gap-4">
@@ -311,14 +340,14 @@ function OverviewPanel({
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
-                Abril 2026
+                {data.monthLabel}
               </p>
               <h3 className="section-title mt-2 text-4xl font-semibold tracking-tight text-[color:var(--ink)]">
-                {formatCurrencyCLP(monthlySnapshot.balance)}
+                {formatCurrencyCLP(data.monthlySnapshot.balance)}
               </h3>
               <p className="mt-2 text-sm text-[color:var(--muted)]">
-                Neto del mes · {formatSignedCurrencyCLP(monthlySnapshot.balanceDelta)} vs
-                el periodo anterior.
+                Balance neto del mes con {data.monthlySnapshot.transactionCount} movimientos
+                registrados.
               </p>
             </div>
 
@@ -330,7 +359,7 @@ function OverviewPanel({
               />
               <QuickActionButton
                 icon={PiggyBank}
-                label="Ver limites"
+                label="Presupuestos"
                 onClick={() => openView("budget")}
               />
               <QuickActionButton
@@ -344,25 +373,28 @@ function OverviewPanel({
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <SummaryCard
               label="Ingresos"
-              value={monthlySnapshot.income}
-              delta={monthlySnapshot.incomeDelta}
+              value={formatCurrencyCLP(data.monthlySnapshot.income)}
               icon={ArrowUpRight}
               tone="bg-emerald-100 text-emerald-700"
+              footer={data.monthLabel}
             />
             <SummaryCard
               label="Egresos"
-              value={monthlySnapshot.expenses}
-              delta={monthlySnapshot.expenseDelta}
+              value={formatCurrencyCLP(data.monthlySnapshot.expenses)}
               icon={ArrowDownLeft}
               tone="bg-orange-100 text-orange-700"
+              footer={data.monthLabel}
             />
             <SummaryCard
-              label="Categoria mas alta"
-              value={strongestCategory.amount}
-              delta={strongestCategory.change}
+              label="Cuenta principal"
+              value={defaultAccount ? defaultAccount.name : "Sin cuenta"}
               icon={WalletCards}
               tone="bg-sky-100 text-sky-700"
-              footer={strongestCategory.label}
+              footer={
+                defaultAccount
+                  ? renderAccountNote(defaultAccount)
+                  : "Tu primera cuenta aparecera aqui"
+              }
             />
           </div>
         </article>
@@ -385,15 +417,15 @@ function OverviewPanel({
           <div className="mt-5 grid gap-3">
             <SignalCard
               title="Promedio diario"
-              value={formatCurrencyCLP(monthlySnapshot.dailyExpenseAverage)}
+              value={formatCurrencyCLP(data.monthlySnapshot.dailyExpenseAverage)}
             />
             <SignalCard
-              title="Categoria tensionada"
-              value={strongestCategory.label}
+              title="Presupuestos activos"
+              value={`${data.budgetCategories.length}`}
             />
             <SignalCard
-              title="Por revisar"
-              value={`${monthlySnapshot.reviewQueue} movimientos`}
+              title="Categoria principal"
+              value={strongestCategory?.label ?? "Sin datos aun"}
             />
           </div>
         </article>
@@ -415,83 +447,96 @@ function OverviewPanel({
             </span>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-4">
-            {weeklyFlow.map((week) => {
-              const highestBar = Math.max(week.income, week.expense);
+          {data.hasTransactions ? (
+            <>
+              <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                {data.weeklyFlow.map((week) => {
+                  const highestBar = Math.max(week.income, week.expense, 1);
 
-              return (
-                <div
-                  key={week.label}
-                  className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] p-3"
-                >
-                  <div className="grid h-32 grid-cols-2 items-end gap-2">
-                    <div className="flex h-full items-end">
-                      <div
-                        className="w-full rounded-t-2xl bg-emerald-500/85"
-                        style={{
-                          height: `${Math.max((week.income / highestBar) * 100, 12)}%`,
-                        }}
-                      />
+                  return (
+                    <div
+                      key={week.label}
+                      className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] p-3"
+                    >
+                      <div className="grid h-32 grid-cols-2 items-end gap-2">
+                        <div className="flex h-full items-end">
+                          <div
+                            className="w-full rounded-t-2xl bg-emerald-500/85"
+                            style={{
+                              height: `${Math.max((week.income / highestBar) * 100, 8)}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="flex h-full items-end">
+                          <div
+                            className="w-full rounded-t-2xl bg-orange-400/90"
+                            style={{
+                              height: `${Math.max((week.expense / highestBar) * 100, 8)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-1">
+                        <p className="text-sm font-semibold text-[color:var(--ink)]">
+                          {week.label}
+                        </p>
+                        <p className="text-xs text-[color:var(--muted)]">
+                          + {formatCurrencyCLP(week.income)}
+                        </p>
+                        <p className="text-xs text-[color:var(--muted)]">
+                          - {formatCurrencyCLP(week.expense)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex h-full items-end">
-                      <div
-                        className="w-full rounded-t-2xl bg-orange-400/90"
-                        style={{
-                          height: `${Math.max((week.expense / highestBar) * 100, 12)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-1">
-                    <p className="text-sm font-semibold text-[color:var(--ink)]">
-                      {week.label}
-                    </p>
-                    <p className="text-xs text-[color:var(--muted)]">
-                      + {formatCurrencyCLP(week.income)}
-                    </p>
-                    <p className="text-xs text-[color:var(--muted)]">
-                      - {formatCurrencyCLP(week.expense)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-5 grid gap-3">
-            {categoryInsights.map((category) => (
-              <div
-                key={category.slug}
-                className="rounded-[22px] border border-[color:var(--line)] bg-white/78 p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-[color:var(--ink)]">
-                      {category.label}
-                    </p>
-                    <p className="mt-1 text-xs text-[color:var(--muted)]">
-                      {Math.round(category.share * 100)}% del gasto total
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-[color:var(--ink)]">
-                      {formatCurrencyCLP(category.amount)}
-                    </p>
-                    <p className="mt-1 text-xs text-[color:var(--muted)]">
-                      {formatSignedCurrencyCLP(category.change)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="metric-track mt-3 h-2 overflow-hidden rounded-full">
-                  <div
-                    className="metric-fill h-full rounded-full"
-                    style={{ width: `${Math.round(category.share * 100)}%` }}
-                  />
-                </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+
+              <div className="mt-5 grid gap-3">
+                {data.categoryInsights.map((category) => (
+                  <div
+                    key={category.slug}
+                    className="rounded-[22px] border border-[color:var(--line)] bg-white/78 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-[color:var(--ink)]">
+                          {category.label}
+                        </p>
+                        <p className="mt-1 text-xs text-[color:var(--muted)]">
+                          {Math.round(category.share * 100)}% del gasto total
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-[color:var(--ink)]">
+                          {formatCurrencyCLP(category.amount)}
+                        </p>
+                        <p className="mt-1 text-xs text-[color:var(--muted)]">
+                          {category.budgetFill !== null
+                            ? `${Math.round(category.budgetFill * 100)}% del limite`
+                            : "Sin limite activo"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="metric-track mt-3 h-2 overflow-hidden rounded-full">
+                      <div
+                        className="metric-fill h-full rounded-full"
+                        style={{ width: `${Math.round(category.share * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <EmptyPanel
+              title="Todavia no hay movimientos"
+              detail="Usa Captura para registrar tu primer gasto o ingreso. Desde ahi el dashboard empezara a llenarse solo."
+              actionLabel="Ir a captura"
+              onClick={() => openView("capture")}
+            />
+          )}
         </article>
 
         <div className="grid gap-4">
@@ -514,55 +559,56 @@ function OverviewPanel({
               </button>
             </div>
 
-            <div className="mt-5 space-y-3">
-              {recentTransactions.slice(0, 4).map((transaction) => {
-                const meta = categoryMeta[transaction.category];
+            {data.recentTransactions.length > 0 ? (
+              <div className="mt-5 space-y-3">
+                {data.recentTransactions.slice(0, 4).map((transaction) => {
+                  const meta = getCategoryAppearance(
+                    transaction.categorySlug,
+                    transaction.categoryLabel,
+                  );
 
-                return (
-                  <div
-                    key={transaction.id}
-                    className="rounded-[22px] border border-[color:var(--line)] bg-white/78 px-4 py-3"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="rounded-[22px] border border-[color:var(--line)] bg-white/78 px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
                           <span
                             className="rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]"
                             style={{ background: meta.soft, color: meta.ink }}
                           >
                             {meta.label}
                           </span>
-                          {transaction.needsReview ? (
-                            <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
-                              revisar
-                            </span>
-                          ) : null}
+                          <p className="mt-3 text-sm font-semibold text-[color:var(--ink)]">
+                            {transaction.title}
+                          </p>
+                          <p className="mt-1 text-xs text-[color:var(--muted)]">
+                            {transaction.account} - {transaction.occurredAt}
+                          </p>
                         </div>
-                        <p className="mt-3 text-sm font-semibold text-[color:var(--ink)]">
-                          {transaction.title}
-                        </p>
-                        <p className="mt-1 text-xs text-[color:var(--muted)]">
-                          {transaction.account} - {transaction.occurredAt}
+
+                        <p
+                          className={`text-sm font-semibold ${
+                            transaction.type === "income"
+                              ? "text-emerald-700"
+                              : "text-[color:var(--ink)]"
+                          }`}
+                        >
+                          {transaction.type === "income" ? "+" : "-"}
+                          {formatCurrencyCLP(transaction.amount)}
                         </p>
                       </div>
-
-                      <p
-                        className={`text-sm font-semibold ${
-                          transaction.type === "income"
-                            ? "text-emerald-700"
-                            : "text-[color:var(--ink)]"
-                        }`}
-                      >
-                        {transaction.type === "income" ? "+" : "-"}
-                        {formatCurrencyCLP(transaction.amount)}
-                      </p>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-[24px] border border-dashed border-[color:var(--line-strong)] bg-[color:var(--surface-strong)] px-4 py-8 text-sm leading-6 text-[color:var(--muted)]">
+                Aun no hay movimientos guardados.
+              </div>
+            )}
           </article>
-
           <article className="glass-panel rounded-[30px] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -579,9 +625,9 @@ function OverviewPanel({
             </div>
 
             <div className="mt-5 grid gap-3">
-              {accountSnapshots.map((account) => (
+              {data.accountSnapshots.map((account) => (
                 <div
-                  key={account.name}
+                  key={account.id}
                   className="rounded-[22px] border border-[color:var(--line)] bg-[color:var(--surface-strong)] px-4 py-3"
                 >
                   <div className="flex items-center justify-between gap-4">
@@ -590,17 +636,51 @@ function OverviewPanel({
                         {account.name}
                       </p>
                       <p className="mt-1 text-xs text-[color:var(--muted)]">
-                        {account.note}
+                        {renderAccountNote(account)}
                       </p>
                     </div>
-                    <p className="text-sm font-semibold text-[color:var(--ink)]">
-                      {formatCurrencyCLP(account.balance)}
-                    </p>
+                    <div className="text-right">
+                      <p
+                        className={`text-sm font-semibold ${
+                          account.balance < 0 ? "text-rose-700" : "text-[color:var(--ink)]"
+                        }`}
+                      >
+                        {formatSignedCurrencyCLP(account.balance)}
+                      </p>
+                      {account.creditLimit > 0 ? (
+                        <p className="mt-1 text-xs text-[color:var(--muted)]">
+                          Cupo {formatCurrencyCLP(account.creditLimit)}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </article>
+
+          {!data.hasTransactions ? (
+            <article className="glass-panel rounded-[30px] p-5 sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+                Base personal
+              </p>
+              <div className="mt-4 grid gap-3">
+                {data.setupFocus.map((item) => (
+                  <div
+                    key={item.title}
+                    className="rounded-[22px] border border-[color:var(--line)] bg-white/78 px-4 py-4"
+                  >
+                    <p className="text-sm font-semibold text-[color:var(--ink)]">
+                      {item.title}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+                      {item.detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          ) : null}
         </div>
       </div>
     </section>
@@ -693,15 +773,13 @@ function MobileNavButton({
 function SummaryCard({
   label,
   value,
-  delta,
   footer,
   icon: Icon,
   tone,
 }: {
   label: string;
-  value: number;
-  delta: number;
-  footer?: string;
+  value: string;
+  footer: string;
   icon: LucideIcon;
   tone: string;
 }) {
@@ -714,11 +792,9 @@ function SummaryCard({
         </span>
       </div>
       <p className="mt-4 text-2xl font-semibold tracking-tight text-[color:var(--ink)]">
-        {formatCurrencyCLP(value)}
+        {value}
       </p>
-      <p className="mt-2 text-xs text-[color:var(--muted)]">
-        {footer ?? `${formatSignedCurrencyCLP(delta)} vs mes anterior`}
-      </p>
+      <p className="mt-2 text-xs text-[color:var(--muted)]">{footer}</p>
     </article>
   );
 }
@@ -779,4 +855,40 @@ function SignalCard({ title, value }: { title: string; value: string }) {
       <p className="mt-2 text-lg font-semibold text-[color:var(--ink)]">{value}</p>
     </div>
   );
+}
+
+function EmptyPanel({
+  title,
+  detail,
+  actionLabel,
+  onClick,
+}: {
+  title: string;
+  detail: string;
+  actionLabel: string;
+  onClick: () => void;
+}) {
+  return (
+    <div className="mt-5 rounded-[24px] border border-dashed border-[color:var(--line-strong)] bg-[color:var(--surface-strong)] px-5 py-8">
+      <p className="text-lg font-semibold text-[color:var(--ink)]">{title}</p>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-[color:var(--muted)]">
+        {detail}
+      </p>
+      <button
+        type="button"
+        onClick={onClick}
+        className="mt-5 inline-flex min-h-[44px] items-center rounded-full bg-[color:var(--accent-strong)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--accent)]"
+      >
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
+function renderAccountNote(account: DashboardData["accountSnapshots"][number]) {
+  if (account.creditLimit > 0) {
+    return `${account.note}. Balance actual ${formatSignedCurrencyCLP(account.balance)}`;
+  }
+
+  return account.note;
 }

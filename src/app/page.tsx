@@ -1,4 +1,7 @@
+import { AuthPanel } from "@/components/auth-panel";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { getDashboardData, type DashboardSupabase } from "@/lib/dashboard-data";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 const allowedViews = [
   "overview",
@@ -21,6 +24,10 @@ export default async function Home({
 }: {
   searchParams: PageSearchParams;
 }) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const resolvedSearchParams = await searchParams;
   const requestedView = resolvedSearchParams.view;
   const initialView: AllowedView =
@@ -28,5 +35,14 @@ export default async function Home({
       ? (requestedView as AllowedView)
       : "overview";
 
-  return <DashboardShell initialView={initialView} />;
+  if (!user) {
+    return <AuthPanel />;
+  }
+
+  const dashboardData = await getDashboardData(
+    supabase as unknown as DashboardSupabase,
+    user,
+  );
+
+  return <DashboardShell initialView={initialView} data={dashboardData} />;
 }

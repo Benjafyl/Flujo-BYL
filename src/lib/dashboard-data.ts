@@ -1,220 +1,296 @@
+import type { User } from "@supabase/supabase-js";
+
 import type {
   AccountSnapshot,
   AutomationMethod,
   BudgetCategory,
   CategoryInsight,
+  DashboardData,
   MonthlySnapshot,
   RecentTransaction,
+  SetupFocusItem,
+  TransactionType,
   WeeklyFlowPoint,
 } from "@/lib/finance-types";
-
-export const monthlySnapshot: MonthlySnapshot = {
-  income: 1_284_000,
-  expenses: 718_500,
-  balance: 565_500,
-  incomeDelta: 134_000,
-  expenseDelta: 66_500,
-  balanceDelta: 67_500,
-  budgetUsed: 0.62,
-  dailyExpenseAverage: 23_950,
-  reviewQueue: 2,
-};
-
-export const weeklyFlow: WeeklyFlowPoint[] = [
-  { label: "Semana 1", income: 620_000, expense: 144_000 },
-  { label: "Semana 2", income: 314_000, expense: 177_500 },
-  { label: "Semana 3", income: 0, expense: 203_000 },
-  { label: "Semana 4", income: 350_000, expense: 194_000 },
-];
-
-export const categoryInsights: CategoryInsight[] = [
-  {
-    slug: "supermarket",
-    label: "Supermercado",
-    amount: 201_000,
-    share: 0.28,
-    change: 34_500,
-    budgetFill: 0.71,
-    description: "Tu categoria mas constante. Aqui conviene vigilar ticket promedio.",
-  },
-  {
-    slug: "delivery",
-    label: "Delivery / comida",
-    amount: 132_000,
-    share: 0.18,
-    change: 29_000,
-    budgetFill: 0.83,
-    description: "El punto mas sensible cuando hay cansancio o semanas desordenadas.",
-  },
-  {
-    slug: "transport",
-    label: "Transporte",
-    amount: 86_500,
-    share: 0.12,
-    change: -8_000,
-    budgetFill: 0.58,
-    description: "Buen candidato para automatizar desde Wallet o mensajes del banco.",
-  },
-  {
-    slug: "snacks",
-    label: "Snacks / cafe",
-    amount: 74_000,
-    share: 0.1,
-    change: 12_500,
-    budgetFill: 0.88,
-    description: "Gasto hormiga. Aqui la captura por voz vale oro.",
-  },
-];
-
-export const budgetCategories: BudgetCategory[] = [
-  {
-    slug: "supermarket",
-    label: "Supermercado",
-    spent: 201_000,
-    limit: 280_000,
-    note: "Compra semanal y reposicion basica.",
-  },
-  {
-    slug: "delivery",
-    label: "Delivery / comida",
-    spent: 132_000,
-    limit: 160_000,
-    note: "Mantener este numero bajo control cambia el mes completo.",
-  },
-  {
-    slug: "snacks",
-    label: "Snacks / cafe",
-    spent: 74_000,
-    limit: 84_000,
-    note: "Aqui es clave ver el restante antes de aceptar otro cafe.",
-  },
-  {
-    slug: "transport",
-    label: "Transporte",
-    spent: 86_500,
-    limit: 150_000,
-    note: "Espacio sano para micro, uber y viajes puntuales.",
-  },
-];
-
-export const recentTransactions: RecentTransaction[] = [
-  {
-    id: "tx_01",
-    title: "iMark Los Carrera",
-    description: "Compra semanal registrada por texto natural",
-    amount: 24_800,
-    type: "expense",
-    category: "supermarket",
-    account: "Debito principal",
-    occurredAt: "Hoy - 13:42",
-  },
-  {
-    id: "tx_02",
-    title: "Pago freelance landing",
-    description: "Transferencia recibida desde cliente",
-    amount: 350_000,
-    type: "income",
-    category: "freelance",
-    account: "Cuenta corriente",
-    occurredAt: "Ayer - 10:18",
-  },
-  {
-    id: "tx_03",
-    title: "Cafe en la universidad",
-    description: "Entrada creada por voz y marcada para revisar",
-    amount: 4_500,
-    type: "expense",
-    category: "snacks",
-    account: "Efectivo",
-    occurredAt: "Ayer - 09:05",
-    needsReview: true,
-  },
-  {
-    id: "tx_04",
-    title: "Uber a casa",
-    description: "Categoria resuelta por merchant alias",
-    amount: 7_400,
-    type: "expense",
-    category: "transport",
-    account: "Debito principal",
-    occurredAt: "Lun - 22:19",
-  },
-];
-
-export const accountSnapshots: AccountSnapshot[] = [
-  {
-    name: "Cuenta corriente",
-    balance: 426_300,
-    note: "Cuenta operativa principal",
-  },
-  {
-    name: "Debito principal",
-    balance: 109_200,
-    note: "La cuenta mas usada en el dia a dia",
-  },
-  {
-    name: "Efectivo",
-    balance: 30_000,
-    note: "Caja chica para campus y gastos chicos",
-  },
-];
-
-export const automationMethods: AutomationMethod[] = [
-  {
-    id: "apple-pay",
-    title: "Atajo post-pago",
-    description:
-      "Cada pago puede entrar como movimiento ya clasificado desde iPhone.",
-    bullets: [
-      "Disparo instantaneo post-pago.",
-      "Sin abrir la app si no hace falta.",
-      "Pensado para uso diario.",
-    ],
-    footnote: "Usa un Atajo de iPhone conectado al webhook de FLUJO BYL.",
-  },
-  {
-    id: "voice-button",
-    title: "Boton de voz",
-    description:
-      "Dictas el gasto y se detectan monto, comercio, categoria y fecha.",
-    bullets: [
-      "Registro manos libres.",
-      "Detecta fechas como hoy o ayer.",
-      "Muestra el impacto en presupuesto.",
-    ],
-    footnote: "Disponible en web y PWA con reconocimiento de voz del navegador.",
-  },
-  {
-    id: "message-trigger",
-    title: "Mensaje o confirmacion",
-    description:
-      "Una confirmacion de compra o un mensaje puede pasar por el mismo intake.",
-    bullets: [
-      "Sirve para SMS del banco o mensajes guardados.",
-      "Comparte el mismo motor de normalizacion.",
-      "Mantiene una sola capa de entrada.",
-    ],
-    footnote: "Ideal para ampliar la automatizacion sin cambiar la interfaz.",
-  },
-];
-
-export const askFinancePrompts = [
-  "En que categoria gaste mas este mes?",
-  "Cuanto me queda en delivery?",
-  "Que categoria esta mas cerca del limite?",
-];
-
-export const captureExamples = [
-  "Gaste 2.000 en iMark",
-  "Compre un cafe en la universidad por 4.500",
-  "Me llegaron 350 mil de pago freelance",
-];
 
 const currencyFormatter = new Intl.NumberFormat("es-CL", {
   style: "currency",
   currency: "CLP",
   maximumFractionDigits: 0,
 });
+
+const dateFormatter = new Intl.DateTimeFormat("es-CL", {
+  month: "long",
+  year: "numeric",
+  timeZone: "America/Santiago",
+});
+
+const occurredAtFormatter = new Intl.DateTimeFormat("es-CL", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "America/Santiago",
+});
+
+export const automationMethods: AutomationMethod[] = [
+  {
+    id: "apple-pay",
+    title: "Atajo post-pago",
+    description:
+      "Cada pago del iPhone puede terminar en un movimiento guardado en FLUJO BYL.",
+    bullets: [
+      "Pensado para uso personal.",
+      "Ideal para Apple Pay y Shortcuts.",
+      "Mantiene el registro al dia.",
+    ],
+    footnote: "El webhook ya existe. Solo falta cerrar la parte autenticada del atajo.",
+  },
+  {
+    id: "voice-button",
+    title: "Boton de voz",
+    description:
+      "Dictas el gasto con lenguaje natural y se registra directo con monto y categoria.",
+    bullets: [
+      "Sin escribir formularios.",
+      "Perfecto para el celular.",
+      "Aprende tus comercios frecuentes.",
+    ],
+    footnote: "La captura manual y hablada ya comparte el mismo flujo de guardado.",
+  },
+  {
+    id: "message-trigger",
+    title: "Mensajes y correos",
+    description:
+      "El siguiente paso es transformar confirmaciones del banco en movimientos reales.",
+    bullets: [
+      "Sirve para SMS o email.",
+      "Comparte la misma normalizacion.",
+      "Mantiene una sola entrada de datos.",
+    ],
+    footnote: "Queda listo para cuando agreguemos ingestion automatica segura.",
+  },
+];
+
+export const askFinancePrompts = [
+  "Cuanto he gastado en supermercado este mes?",
+  "Cuanto debo hoy en Tenpo?",
+  "Que tan cargado voy en servicios basicos?",
+];
+
+export const captureExamples = [
+  "Pague 18.900 en iMark con Bice",
+  "Me llego finiquito de Interchileclima por 495 mil",
+  "Pague 43.500 de gasto comun",
+];
+
+export const setupFocus: SetupFocusItem[] = [
+  {
+    title: "Banco Bice",
+    detail: "Cuenta corriente como base diaria y tarjeta de credito con cupo de $300.000.",
+  },
+  {
+    title: "BancoEstado",
+    detail: "CuentaRUT disponible como cuenta secundaria.",
+  },
+  {
+    title: "Tenpo",
+    detail: "Tarjeta de credito con deuda pendiente de $300.000 para monitorear.",
+  },
+  {
+    title: "Ingresos irregulares",
+    detail: "Finiquito de Interchileclima en cuotas y sin sueldo fijo actual.",
+  },
+  {
+    title: "Obligaciones base",
+    detail: "Gasto comun, agua, luz, internet y supermercado como foco del mes.",
+  },
+];
+
+type ProfileRow = {
+  full_name: string | null;
+  default_account_name: string | null;
+};
+
+type AccountRow = {
+  id: string;
+  name: string;
+  institution: string | null;
+  account_type: string;
+  balance: number | string;
+  credit_limit: number | string | null;
+  is_default: boolean;
+  display_order: number | null;
+  notes: string | null;
+};
+
+type CategoryRow = {
+  id: string;
+  slug: string;
+  name: string;
+  kind: "income" | "expense";
+  color: string | null;
+  sort_order: number;
+};
+
+type TransactionRow = {
+  id: string;
+  type: TransactionType;
+  amount: number | string;
+  occurred_at: string;
+  description_raw: string;
+  merchant_raw: string | null;
+  category_id: string | null;
+  account_id: string | null;
+};
+
+type BudgetRow = {
+  id: string;
+  category_id: string;
+  amount_limit: number | string;
+};
+
+type QueryResultBuilder = PromiseLike<{ data: unknown }> & {
+  eq: (column: string, value: string) => QueryResultBuilder;
+  gte: (column: string, value: string) => QueryResultBuilder;
+  lt: (column: string, value: string) => QueryResultBuilder;
+  order: (
+    column: string,
+    options?: {
+      ascending?: boolean;
+    },
+  ) => QueryResultBuilder;
+  limit: (value: number) => QueryResultBuilder;
+};
+
+export type DashboardSupabase = {
+  from: (table: string) => {
+    select: (columns: string) => QueryResultBuilder;
+  };
+};
+
+export async function getDashboardData(
+  supabase: DashboardSupabase,
+  user: Pick<User, "id" | "email">,
+) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+  const monthDate = formatDateOnly(monthStart);
+
+  const [
+    profileResult,
+    accountsResult,
+    categoriesResult,
+    monthTransactionsResult,
+    recentTransactionsResult,
+    budgetsResult,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, default_account_name")
+      .eq("id", user.id),
+    supabase
+      .from("accounts")
+      .select(
+        "id, name, institution, account_type, balance, credit_limit, is_default, display_order, notes",
+      )
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("categories")
+      .select("id, slug, name, kind, color, sort_order")
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("transactions")
+      .select(
+        "id, type, amount, occurred_at, description_raw, merchant_raw, category_id, account_id",
+      )
+      .gte("occurred_at", monthStart.toISOString())
+      .lt("occurred_at", nextMonth.toISOString())
+      .order("occurred_at", { ascending: false }),
+    supabase
+      .from("transactions")
+      .select(
+        "id, type, amount, occurred_at, description_raw, merchant_raw, category_id, account_id",
+      )
+      .order("occurred_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("monthly_budgets")
+      .select("id, category_id, amount_limit")
+      .eq("month_date", monthDate),
+  ]);
+
+  const profile = firstRow<ProfileRow>(profileResult.data);
+  const accounts = toRows<AccountRow>(accountsResult.data);
+  const categories = toRows<CategoryRow>(categoriesResult.data);
+  const monthTransactions = toRows<TransactionRow>(monthTransactionsResult.data);
+  const recentTransactions = toRows<TransactionRow>(recentTransactionsResult.data);
+  const budgets = toRows<BudgetRow>(budgetsResult.data);
+
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
+
+  const normalizedAccounts = accounts.map((account) => toAccountSnapshot(account));
+  const normalizedBudgets = budgets
+    .map((budget) => {
+      const category = categoryById.get(budget.category_id);
+
+      if (!category) {
+        return null;
+      }
+
+      return {
+        id: budget.id,
+        slug: category.slug,
+        label: category.name,
+        spent: roundCurrency(
+          monthTransactions
+            .filter(
+              (transaction) =>
+                transaction.type === "expense" &&
+                transaction.category_id === budget.category_id,
+            )
+            .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0),
+        ),
+        limit: toNumber(budget.amount_limit),
+        note: `Limite actual para ${category.name.toLowerCase()}.`,
+      } satisfies BudgetCategory;
+    })
+    .filter((budget): budget is BudgetCategory => Boolean(budget));
+
+  const normalizedRecentTransactions = recentTransactions.map((transaction) =>
+    toRecentTransaction(transaction, categoryById.get(transaction.category_id ?? ""), accountById),
+  );
+
+  const monthlySnapshot = buildMonthlySnapshot(monthTransactions, normalizedBudgets, now);
+
+  return {
+    userName:
+      profile?.full_name?.trim() || user.email?.split("@")[0] || "Benja",
+    monthLabel: capitalize(dateFormatter.format(monthStart)),
+    defaultAccountId:
+      accounts.find((account) => account.is_default)?.id ?? accounts[0]?.id ?? null,
+    defaultAccountLabel:
+      normalizedAccounts.find((account) => account.isDefault)?.name ??
+      normalizedAccounts[0]?.name ??
+      null,
+    monthlySnapshot,
+    weeklyFlow: buildWeeklyFlow(monthTransactions, monthStart, nextMonth),
+    categoryInsights: buildCategoryInsights(monthTransactions, normalizedBudgets, categoryById),
+    budgetCategories: normalizedBudgets,
+    recentTransactions: normalizedRecentTransactions,
+    accountSnapshots: normalizedAccounts,
+    automationMethods,
+    askFinancePrompts,
+    captureExamples,
+    setupFocus,
+    hasTransactions: monthTransactions.length > 0,
+    hasBudgets: normalizedBudgets.length > 0,
+  } satisfies DashboardData;
+}
 
 export function formatCurrencyCLP(value: number) {
   return currencyFormatter.format(value);
@@ -226,10 +302,222 @@ export function formatSignedCurrencyCLP(value: number) {
   return `${prefix}${formatCurrencyCLP(value)}`;
 }
 
-export function findBudgetByCategory(slug?: string | null) {
-  if (!slug) {
+export function firstRow<T>(rows: unknown): T | null {
+  if (!Array.isArray(rows) || rows.length === 0) {
     return null;
   }
 
-  return budgetCategories.find((category) => category.slug === slug) ?? null;
+  return rows[0] as T;
+}
+
+function toRows<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function toNumber(value: number | string | null | undefined) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toAccountSnapshot(account: AccountRow): AccountSnapshot {
+  const institutionPrefix = account.institution ? `${account.institution} ` : "";
+  const balance = toNumber(account.balance);
+  const creditLimit = toNumber(account.credit_limit);
+
+  return {
+    id: account.id,
+    name: `${institutionPrefix}${account.name}`.trim(),
+    institution: account.institution,
+    balance,
+    creditLimit,
+    accountType: account.account_type,
+    note:
+      account.notes ??
+      (creditLimit > 0
+        ? `Cupo ${formatCurrencyCLP(creditLimit)}`
+        : account.is_default
+          ? "Cuenta principal"
+          : "Cuenta secundaria"),
+    isDefault: account.is_default,
+  };
+}
+
+function toRecentTransaction(
+  transaction: TransactionRow,
+  category: CategoryRow | undefined,
+  accountById: Map<string, AccountRow>,
+): RecentTransaction {
+  const account = transaction.account_id
+    ? accountById.get(transaction.account_id)
+    : null;
+  const title = transaction.merchant_raw?.trim() || compactDescription(transaction.description_raw);
+  const description = account?.institution
+    ? `${account.institution} ${account.name}`.trim()
+    : account?.name ?? "Sin cuenta";
+
+  return {
+    id: transaction.id,
+    title,
+    description,
+    amount: toNumber(transaction.amount),
+    type: transaction.type,
+    categorySlug: category?.slug ?? null,
+    categoryLabel: category?.name ?? "Sin categoria",
+    account: account?.name ?? "Sin cuenta",
+    occurredAt: capitalize(occurredAtFormatter.format(new Date(transaction.occurred_at))),
+  };
+}
+
+function buildMonthlySnapshot(
+  monthTransactions: TransactionRow[],
+  budgets: BudgetCategory[],
+  now: Date,
+): MonthlySnapshot {
+  const income = roundCurrency(
+    monthTransactions
+      .filter((transaction) => transaction.type === "income")
+      .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0),
+  );
+  const expenses = roundCurrency(
+    monthTransactions
+      .filter((transaction) => transaction.type === "expense")
+      .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0),
+  );
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+
+  return {
+    income,
+    expenses,
+    balance: income - expenses,
+    budgetUsed: totalBudget > 0 ? expenses / totalBudget : null,
+    dailyExpenseAverage: expenses / Math.max(now.getDate(), 1),
+    transactionCount: monthTransactions.length,
+  };
+}
+
+function buildWeeklyFlow(
+  monthTransactions: TransactionRow[],
+  monthStart: Date,
+  nextMonth: Date,
+) {
+  const weeks: WeeklyFlowPoint[] = [];
+  const monthEnd = new Date(nextMonth.getTime() - 1);
+  const totalDays = monthEnd.getDate();
+  const weekCount = Math.max(Math.ceil(totalDays / 7), 4);
+
+  for (let weekIndex = 0; weekIndex < weekCount; weekIndex += 1) {
+    const startDay = weekIndex * 7 + 1;
+    const endDay = Math.min(startDay + 6, 31);
+
+    const weekTransactions = monthTransactions.filter((transaction) => {
+      const occurredAt = new Date(transaction.occurred_at);
+
+      return (
+        occurredAt >= monthStart &&
+        occurredAt.getDate() >= startDay &&
+        occurredAt.getDate() <= endDay
+      );
+    });
+
+    weeks.push({
+      label: `Semana ${weekIndex + 1}`,
+      income: roundCurrency(
+        weekTransactions
+          .filter((transaction) => transaction.type === "income")
+          .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0),
+      ),
+      expense: roundCurrency(
+        weekTransactions
+          .filter((transaction) => transaction.type === "expense")
+          .reduce((sum, transaction) => sum + toNumber(transaction.amount), 0),
+      ),
+    });
+  }
+
+  return weeks;
+}
+
+function buildCategoryInsights(
+  monthTransactions: TransactionRow[],
+  budgets: BudgetCategory[],
+  categoryById: Map<string, CategoryRow>,
+) {
+  const expenseTransactions = monthTransactions.filter(
+    (transaction) => transaction.type === "expense",
+  );
+  const totalExpenses = expenseTransactions.reduce(
+    (sum, transaction) => sum + toNumber(transaction.amount),
+    0,
+  );
+  const grouped = new Map<
+    string,
+    {
+      slug: string;
+      label: string;
+      amount: number;
+    }
+  >();
+
+  expenseTransactions.forEach((transaction) => {
+    const category = transaction.category_id
+      ? categoryById.get(transaction.category_id)
+      : null;
+    const slug = category?.slug ?? "other";
+    const label = category?.name ?? "Sin categoria";
+    const current = grouped.get(slug);
+
+    grouped.set(slug, {
+      slug,
+      label,
+      amount: (current?.amount ?? 0) + toNumber(transaction.amount),
+    });
+  });
+
+  return [...grouped.values()]
+    .map((category) => {
+      const matchingBudget = budgets.find((budget) => budget.slug === category.slug);
+
+      return {
+        slug: category.slug,
+        label: category.label,
+        amount: roundCurrency(category.amount),
+        share: totalExpenses > 0 ? category.amount / totalExpenses : 0,
+        budgetFill: matchingBudget ? category.amount / matchingBudget.limit : null,
+      } satisfies CategoryInsight;
+    })
+    .sort((left, right) => right.amount - left.amount)
+    .slice(0, 4);
+}
+
+function roundCurrency(value: number) {
+  return Math.round(value);
+}
+
+function compactDescription(value: string) {
+  return value.trim().slice(0, 48);
+}
+
+function formatDateOnly(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function capitalize(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

@@ -63,8 +63,8 @@ export async function POST(request: Request) {
         ...parsedTransaction,
         occurredAtIso: parsedBody.data.occurredAt ?? parsedTransaction.occurredAtIso,
       },
-      nextStep: parsedTransaction.needsReview ? "review" : "auto-ready",
-      persistenceStatus: "queued",
+      nextStep: "store-when-authenticated",
+      persistenceStatus: "pending-auth-session",
     },
     { status: 202 },
   );
