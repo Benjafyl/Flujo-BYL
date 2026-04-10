@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 
+import { resolveAppUrl } from "@/lib/site-url";
+
 import "./globals.css";
 
 const manrope = Manrope({
@@ -15,7 +17,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://flujo-byl.local"),
+  metadataBase: new URL(resolveAppUrl()),
   title: {
     default: "FLUJO BYL",
     template: "%s | FLUJO BYL",

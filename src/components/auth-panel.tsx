@@ -4,6 +4,11 @@ import { LoaderCircle, Mail, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  getFriendlyAuthErrorMessage,
+  readAuthErrorFromLocation,
+} from "@/lib/auth-errors";
+import { getAuthCallbackUrl } from "@/lib/site-url";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export function AuthPanel() {
@@ -33,6 +38,21 @@ export function AuthPanel() {
     };
   }, [router]);
 
+  useEffect(() => {
+    const authError = readAuthErrorFromLocation(
+      window.location.search,
+      window.location.hash,
+    );
+
+    if (!authError) {
+      return;
+    }
+
+    setError(
+      getFriendlyAuthErrorMessage(authError.code, authError.description),
+    );
+  }, []);
+
   async function sendMagicLink() {
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -49,7 +69,7 @@ export function AuthPanel() {
       const { error: signInError } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: getAuthCallbackUrl(window.location.origin),
         },
       });
 
@@ -152,8 +172,8 @@ export function AuthPanel() {
 
             {status === "sent" ? (
               <div className="mt-4 rounded-[20px] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                Revisa tu correo y abre el link desde el dispositivo donde quieras
-                entrar.
+                Revisa tu correo y abre el link mas reciente. Si lo pediste desde
+                localhost, el acceso se terminara igual en la app publica.
               </div>
             ) : null}
 
